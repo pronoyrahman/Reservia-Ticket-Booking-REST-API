@@ -13,6 +13,7 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware.js';
 import { RequestLoggerMiddleware } from './common/middleware/request-logger.middleware.js';
+import { SeatsModule } from './seats/seats.module.js';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { RequestLoggerMiddleware } from './common/middleware/request-logger.midd
     LocationsModule,
     ResourcesModule,
     AuthModule,
+    SeatsModule,
   ],
   controllers: [AppController],
   providers: [

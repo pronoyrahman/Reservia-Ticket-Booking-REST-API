@@ -89,6 +89,16 @@ export class LocationsService {
   }
 
   async deleteLocation(id: number): Promise<string> {
+    const location = await this.locationsRepo.findOne({
+      where: { id: id },
+      relations: { resources: true },
+    });
+    if (location && location.resources.length > 0) {
+      throw new ConflictException(
+        `Location with id ${id} is used by ${location.resources.length} resource(s) and cannot be deleted`,
+      );
+    }
+
     const result = (await this.locationsRepo.softDelete(id)).affected;
     if (result != null && result > 0) {
       return `Location deleted with id ${id}`;
