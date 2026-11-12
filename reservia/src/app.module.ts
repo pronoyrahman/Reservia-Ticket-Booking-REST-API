@@ -3,6 +3,7 @@ import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { UsersModule } from './users/users.module.js';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { LocationsModule } from './locations/locations.module.js';
 
 @Module({
   imports: [
@@ -12,11 +13,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
       port: 5432,
       host: 'localhost',
       username: 'postgres',
-      password: 'pronoy',// jar jar postgres er pass ekhane 
+      password: '1234',// Shobai Password 1234 kore nite hobe  
       database: 'reservia_db',
       autoLoadEntities: true,
       synchronize: true,
     }),
+    LocationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
