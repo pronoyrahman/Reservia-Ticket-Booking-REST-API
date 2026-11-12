@@ -1,115 +1,143 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { Users } from './entities/users.entity.js';
 import { CreateUserDto } from './dtos/create-user.dto.js';
 import { UpdateUserDto } from './dtos/update-user.dto.js';
+import { GetUsersQueryDto } from './dtos/get-users-query.dto.js';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(Users)
     private readonly usersRepo: Repository<Users>,
+    private readonly configService: ConfigService,
   ) {}
 
+  private async hashPassword(password: string): Promise<string> {
+    const rounds = Number(this.configService.get('BCRYPT_SALT_ROUNDS') ?? 10);
+    return await bcrypt.hash(password, rounds);
+  }
+
+  private async checkEmailFree(email: string, ownId?: number): Promise<void> {
+    const usr = await this.usersRepo.findOneBy({ email: email });
+    if (usr && usr.id !== ownId) {
+      throw new ConflictException(`email ${email} is already registered`);
+    }
+  }
+
   async createUser(user: CreateUserDto): Promise<Users> {
-    console.log(user);
+    await this.checkEmailFree(user.email);
+
+    const { password, ...rest } = user;
+    let saved: Users;
     try {
-      const hashedPassword = await bcrypt.hash(user.password, 10);
       const userEntity = this.usersRepo.create({
-        email: user.email,
-        password_hash: hashedPassword,
-        name: user.name,
-        phone_number: user.phone_number,
-        role: user.role || 'customer',
+        ...rest,
+        passwordHash: await this.hashPassword(password),
       });
-      return await this.usersRepo.save(userEntity);
+      saved = await this.usersRepo.save(userEntity);
     } catch {
       throw new BadRequestException('Failed to create user');
     }
+
+    return await this.getUserById(saved.id);
   }
 
-  async getAllUsers(): Promise<Users[]> {
-    return await this.usersRepo.find({
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phone_number: true,
-        role: true,
-        is_active: true,
-        created_at: true,
-      },
+  async getAllUsers(query: GetUsersQueryDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const { role, search } = query;
+
+    let where: object | object[] = role ? { role: role } : {};
+    if (search) {
+      where = [
+        { ...where, name: ILike(`%${search}%`) },
+        { ...where, email: ILike(`%${search}%`) },
+      ];
+    }
+
+    const [users, total] = await this.usersRepo.findAndCount({
+      where: where,
+      order: { id: 'ASC' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
+
+    return {
+      data: users,
+      meta: {
+        page: page,
+        limit: limit,
+        total: total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
-  async getUserById(id: string): Promise<Users | null> {
+  async getUserById(id: number): Promise<Users> {
+    const usr = await this.usersRepo.findOneBy({ id: id });
+    if (!usr) {
+      throw new NotFoundException(`User with id ${id} not found`);
+    }
+    return usr;
+  }
+
+  // only for login: password_hash is select: false, so it is asked for here
+  async getUserByEmailWithPassword(email: string): Promise<Users | null> {
     return await this.usersRepo.findOne({
-      where: { id: parseInt(id) },
+      where: { email: email },
       select: {
         id: true,
         name: true,
         email: true,
-        phone_number: true,
         role: true,
-        is_active: true,
-        created_at: true,
+        isActive: true,
+        passwordHash: true,
       },
     });
   }
 
-  async deleteUser(id: string): Promise<string> {
-    const res = (await this.usersRepo.delete(parseInt(id))).affected;
-    if (res && res > 0) {
+  async replaceUser(id: number, user: UpdateUserDto): Promise<Users> {
+    return await this.updateUser(id, user);
+  }
+
+  async updateUser(id: number, user: UpdateUserDto): Promise<Users> {
+    await this.getUserById(id);
+    if (user.email) {
+      await this.checkEmailFree(user.email, id);
+    }
+
+    const { password, ...rest } = user;
+    const updateData: Partial<Users> = { ...rest };
+    if (password) {
+      updateData.passwordHash = await this.hashPassword(password);
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      throw new BadRequestException('Nothing to update');
+    }
+
+    const res = (await this.usersRepo.update(id, updateData)).affected;
+    if (res == null || res === 0) {
+      throw new NotFoundException(`User with id ${id} not found`);
+    }
+    return await this.getUserById(id);
+  }
+
+  async deleteUser(id: number): Promise<string> {
+    const res = (await this.usersRepo.delete(id)).affected;
+    if (res != null && res > 0) {
       return `User deleted with id ${id}`;
     } else {
-      throw new BadRequestException('User not found');
-    }
-  }
-
-  async replaceUser(id: string, user: UpdateUserDto): Promise<string> {
-    try {
-      const updateData: any = {
-        email: user.email,
-        name: user.name,
-        phone_number: user.phone_number,
-        role: user.role,
-      };
-      if (user.password) {
-        updateData.password_hash = await bcrypt.hash(user.password, 10);
-      }
-      const res = (await this.usersRepo.update(parseInt(id), updateData))
-        .affected;
-      if (res && res > 0) {
-        return `User updated with id ${id}`;
-      } else {
-        return `User with id ${id} not found`;
-      }
-    } catch {
-      throw new BadRequestException('User not found');
-    }
-  }
-
-  async updateUser(id: string, user: UpdateUserDto): Promise<string> {
-    try {
-      const updateData: any = {};
-      if (user.email) updateData.email = user.email;
-      if (user.name) updateData.name = user.name;
-      if (user.phone_number) updateData.phone_number = user.phone_number;
-      if (user.role) updateData.role = user.role;
-      if (user.password) {
-        updateData.password_hash = await bcrypt.hash(user.password, 10);
-      }
-      const res = (await this.usersRepo.update(parseInt(id), updateData))
-        .affected;
-      if (res && res > 0) {
-        return `User updated with id ${id}`;
-      } else {
-        return `User with id ${id} not found`;
-      }
-    } catch {
-      throw new BadRequestException('User not found');
+      throw new NotFoundException(`User with id ${id} not found`);
     }
   }
 }
