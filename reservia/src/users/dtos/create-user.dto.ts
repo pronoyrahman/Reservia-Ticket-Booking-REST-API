@@ -1,40 +1,47 @@
 import {
+  IsBoolean,
   IsEmail,
+  IsEnum,
+  IsMobilePhone,
   IsNotEmpty,
+  IsOptional,
   IsString,
+  Matches,
   MaxLength,
   MinLength,
-  Matches,
-  IsOptional,
-  IsMobilePhone,
 } from 'class-validator';
+import { Role } from '../../common/enums/role.enum.js';
 
 export class CreateUserDto {
-  @IsEmail()
+  @IsString()
   @IsNotEmpty()
+  @MinLength(3)
+  @MaxLength(100)
+  name: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @IsEmail()
+  @MaxLength(150)
   email: string;
 
   @IsString()
   @IsNotEmpty()
-  @MinLength(8)
-  @MaxLength(255)
-  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z]).{8,}$/, {
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z]).{8,20}$/, {
     message:
-      'password should have at least one lowercase, one uppercase, one number, one special char',
+      'password should have at least one lowercase, one uppercase, one number, one special char and length should be between 8 to 20 char',
   })
   password: string;
 
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(3)
-  @MaxLength(255)
-  name: string;
+  @IsOptional()
+  @IsMobilePhone('bn-BD')
+  phoneNumber?: string;
 
   @IsOptional()
-  @IsMobilePhone()
-  phone_number?: string;
+  @IsEnum(Role, { message: 'role must be either admin or customer' })
+  role?: Role;
 
   @IsOptional()
-  @IsString()
-  role?: string;
+  @IsBoolean()
+  isActive?: boolean;
 }
