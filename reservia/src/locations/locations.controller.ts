@@ -9,15 +9,13 @@ import {
   Post,
   Put,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import { LocationsService } from './locations.service.js';
 import { CreateLocationDto } from './dtos/create-location.dto.js';
 import { UpdateLocationDto } from './dtos/update-location.dto.js';
 import { LocationQueryDto } from './dtos/location-query.dto.js';
 import { Locations } from './entities/locations.entity.js';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
-import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Public } from '../common/decorators/public.decorator.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { Role } from '../common/enums/role.enum.js';
 
@@ -26,19 +24,20 @@ export class LocationsController {
   constructor(private readonly locationsService: LocationsService) {}
 
   @Post('create-location')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Admin)
+  @Roles(Role.Admin, Role.Organizer)
   async createLocation(
     @Body() location: CreateLocationDto,
   ): Promise<Locations> {
     return await this.locationsService.createLocation(location);
   }
 
+  @Public()
   @Get()
   async getAllLocations(@Query() query: LocationQueryDto) {
     return await this.locationsService.getAllLocations(query);
   }
 
+  @Public()
   @Get(':id')
   async getLocationById(
     @Param('id', ParseIntPipe) id: number,
@@ -47,8 +46,7 @@ export class LocationsController {
   }
 
   @Put('updateLocationFully/:id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Admin)
+  @Roles(Role.Admin, Role.Organizer)
   async updateLocationFully(
     @Param('id', ParseIntPipe) id: number,
     @Body() location: CreateLocationDto,
@@ -57,8 +55,7 @@ export class LocationsController {
   }
 
   @Patch('updateLocationPartially/:id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Admin)
+  @Roles(Role.Admin, Role.Organizer)
   async updateLocationPartially(
     @Param('id', ParseIntPipe) id: number,
     @Body() location: UpdateLocationDto,
@@ -67,8 +64,7 @@ export class LocationsController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Admin)
+  @Roles(Role.Admin, Role.Organizer)
   async deleteLocation(@Param('id', ParseIntPipe) id: number): Promise<string> {
     return await this.locationsService.deleteLocation(id);
   }

@@ -9,7 +9,6 @@ import {
   Post,
   Put,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import { ResourcesService } from './resources.service.js';
 import { CreateResourceDto } from './dtos/create-resource.dto.js';
@@ -17,8 +16,7 @@ import { ReplaceResourceDto } from './dtos/replace-resource.dto.js';
 import { UpdateResourceDto } from './dtos/update-resource.dto.js';
 import { ResourceQueryDto } from './dtos/resource-query.dto.js';
 import { Resources } from './entities/resources.entity.js';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
-import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Public } from '../common/decorators/public.decorator.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { Role } from '../common/enums/role.enum.js';
 
@@ -27,19 +25,20 @@ export class ResourcesController {
   constructor(private readonly resourcesService: ResourcesService) {}
 
   @Post('create-resource')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Admin)
+  @Roles(Role.Admin, Role.Organizer)
   async createResource(
     @Body() resource: CreateResourceDto,
   ): Promise<Resources> {
     return await this.resourcesService.createResource(resource);
   }
 
+  @Public()
   @Get()
   async getAllResources(@Query() query: ResourceQueryDto) {
     return await this.resourcesService.getAllResources(query);
   }
 
+  @Public()
   @Get(':id')
   async getResourceById(
     @Param('id', ParseIntPipe) id: number,
@@ -48,8 +47,7 @@ export class ResourcesController {
   }
 
   @Put('updateResourceFully/:id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Admin)
+  @Roles(Role.Admin, Role.Organizer)
   async updateResourceFully(
     @Param('id', ParseIntPipe) id: number,
     @Body() resource: ReplaceResourceDto,
@@ -58,8 +56,7 @@ export class ResourcesController {
   }
 
   @Patch('updateResourcePartially/:id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Admin)
+  @Roles(Role.Admin, Role.Organizer)
   async updateResourcePartially(
     @Param('id', ParseIntPipe) id: number,
     @Body() resource: UpdateResourceDto,
@@ -68,8 +65,7 @@ export class ResourcesController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Admin)
+  @Roles(Role.Admin, Role.Organizer)
   async deleteResource(@Param('id', ParseIntPipe) id: number): Promise<string> {
     return await this.resourcesService.deleteResource(id);
   }
