@@ -41,5 +41,5 @@ address: string;
 
   @IsOptional()
   @IsBoolean()
-  is_Active?: boolean;
+  isActive?: boolean;
 }

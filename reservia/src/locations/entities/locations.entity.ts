@@ -1,4 +1,4 @@
-import {Column, CreateDateColumn,Entity,PrimaryGeneratedColumn,Unique,UpdateDateColumn,} from 'typeorm';
+import {Column, CreateDateColumn,Entity,PrimaryGeneratedColumn,Unique,UpdateDateColumn,DeleteDateColumn} from 'typeorm';
 
 @Entity('locations')
 @Unique(['name', 'address'])
@@ -65,4 +65,9 @@ export class Locations {
     type: 'timestamptz',
   })
   updatedAt: Date;
+    @DeleteDateColumn({
+    name: 'deleted_at',
+    type: 'timestamptz',
+  })
+  deletedAt: Date;
 }
