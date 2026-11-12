@@ -46,7 +46,7 @@ export class CreateResourceDto {
 
   @IsInt()
   @Min(1)
-  @Max(500)
+  @Max(260)
   @IsNotEmpty()
   @Type(() => Number)
   capacity: number;

@@ -8,6 +8,7 @@ import { LocationsModule } from './locations/locations.module.js';
 import { ResourcesModule } from './resources/resources.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { envValidationSchema } from './config/env.validation.js';
+import { SeatsModule } from './seats/seats.module.js';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { envValidationSchema } from './config/env.validation.js';
     LocationsModule,
     ResourcesModule,
     AuthModule,
+    SeatsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

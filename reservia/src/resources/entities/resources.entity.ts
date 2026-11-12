@@ -7,10 +7,12 @@ import {
   Index,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import type { Locations } from '../../locations/entities/locations.entity.js';
+import type { Seats } from '../../seats/entities/seats.entity.js';
 
 @Entity('resources')
 @Check('"ends_at" > "starts_at"')
@@ -92,6 +94,8 @@ export class Resources {
     default: true,
   })
   isAvailable: boolean;
+   @OneToMany('Seats', (seat: Seats) => seat.resource)
+  seats: Seats[];
 
   @CreateDateColumn({
     name: 'created_at',
