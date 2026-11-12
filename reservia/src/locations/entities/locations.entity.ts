@@ -1,21 +1,21 @@
-import {Column,CreateDateColumn,Entity,PrimaryGeneratedColumn,UpdateDateColumn,} from 'typeorm';
+import {Column, CreateDateColumn,Entity,PrimaryGeneratedColumn,Unique,UpdateDateColumn,} from 'typeorm';
 
 @Entity('locations')
+@Unique(['name', 'address'])
 export class Locations {
-  @PrimaryGeneratedColumn({name:'locationId'})
+  @PrimaryGeneratedColumn()
   id: number;
 
   @Column({
-    name: 'locationName',
+    name: 'name',
     type: 'varchar',
     length: 150,
-    unique: true,
     nullable: false,
   })
   name: string;
 
   @Column({
-    name: 'locationCity',
+    name: 'city',
     type: 'varchar',
     length: 100,
     nullable: false,
@@ -23,14 +23,14 @@ export class Locations {
   city: string;
 
   @Column({
-    name: 'locationAddress',
+    name: 'address',
     type: 'text',
-    nullable: true,
+    nullable: false,
   })
   address: string;
 
   @Column({
-    name: 'locationLatitude',
+    name: 'latitude',
     type: 'decimal',
     precision: 10,
     scale: 6,
@@ -39,7 +39,7 @@ export class Locations {
   latitude: number;
 
   @Column({
-    name: 'locationLongitude',
+    name: 'longitude',
     type: 'decimal',
     precision: 10,
     scale: 6,
@@ -48,14 +48,21 @@ export class Locations {
   longitude: number;
 
   @Column({
+    name: 'is_active',
     type: 'boolean',
     default: true,
   })
-  is_active: boolean;
+  isActive: boolean;
 
-  @CreateDateColumn()
-  created_at: Date;
+  @CreateDateColumn({
+    name: 'created_at',
+    type: 'timestamptz',
+  })
+  createdAt: Date;
 
-  @UpdateDateColumn()
-  updated_at: Date;
+  @UpdateDateColumn({
+    name: 'updated_at',
+    type: 'timestamptz',
+  })
+  updatedAt: Date;
 }
