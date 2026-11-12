@@ -1,4 +1,15 @@
-import {Controller, Delete,Get,Param,Body,ParseIntPipe,Patch,Post,Put,Query,} from '@nestjs/common';
+import {
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Body,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Put,
+  Query,
+} from '@nestjs/common';
 import { LocationsService } from './locations.service.js';
 import { CreateLocationDto } from './dtos/create-location.dto.js';
 import { UpdateLocationDto } from './dtos/update-location.dto.js';
@@ -45,9 +56,7 @@ export class LocationsController {
   }
 
   @Delete(':id')
-  async deleteLocation(
-    @Param('id', ParseIntPipe) id: number,
-  ): Promise<string> {
+  async deleteLocation(@Param('id', ParseIntPipe) id: number): Promise<string> {
     return await this.locationsService.deleteLocation(id);
   }
 }
