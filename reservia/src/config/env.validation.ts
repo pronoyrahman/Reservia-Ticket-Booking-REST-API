@@ -19,4 +19,19 @@ export const envValidationSchema = Joi.object({
   HOLD_DURATION_MINUTES: Joi.number().integer().min(1).default(15),
   MAX_SEATS_PER_CUSTOMER: Joi.number().integer().min(1).default(4),
   CANCELLATION_CUTOFF_HOURS: Joi.number().integer().min(0).default(24),
+
+  SEED_ADMIN_EMAIL: Joi.string()
+    .email({ tlds: { allow: false } })
+    .required(),
+  SEED_ADMIN_PASSWORD: Joi.string()
+    .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z]).{8,20}$/)
+    .required(),
+
+  MAIL_HOST: Joi.string().optional(),
+  MAIL_PORT: Joi.number().optional(),
+  MAIL_USER: Joi.string().optional(),
+  MAIL_PASSWORD: Joi.string().optional(),
+  MAIL_FROM: Joi.string().optional(),
+
+  DEMO_FAIL_AFTER_TICKET_INSERT: Joi.boolean().default(false),
 });

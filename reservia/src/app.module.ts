@@ -1,4 +1,5 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller.js';
@@ -8,6 +9,10 @@ import { LocationsModule } from './locations/locations.module.js';
 import { ResourcesModule } from './resources/resources.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { envValidationSchema } from './config/env.validation.js';
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
+import { RolesGuard } from './common/guards/roles.guard.js';
+import { RequestIdMiddleware } from './common/middleware/request-id.middleware.js';
+import { RequestLoggerMiddleware } from './common/middleware/request-logger.middleware.js';
 
 @Module({
   imports: [
@@ -34,6 +39,22 @@ import { envValidationSchema } from './config/env.validation.js';
     AuthModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
+    },
+  ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(RequestIdMiddleware, RequestLoggerMiddleware)
+      .forRoutes('*');
+  }
+}

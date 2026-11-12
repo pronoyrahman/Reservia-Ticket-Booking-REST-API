@@ -9,20 +9,16 @@ import {
   Post,
   Put,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service.js';
 import { CreateUserDto } from './dtos/create-user.dto.js';
 import { UpdateUserDto } from './dtos/update-user.dto.js';
 import { GetUsersQueryDto } from './dtos/get-users-query.dto.js';
 import { Users } from './entities/users.entity.js';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
-import { RolesGuard } from '../common/guards/roles.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { Role } from '../common/enums/role.enum.js';
 
 @Controller('users')
-@UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.Admin)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}

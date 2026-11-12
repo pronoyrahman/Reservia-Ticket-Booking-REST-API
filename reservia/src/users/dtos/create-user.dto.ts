@@ -38,7 +38,7 @@ export class CreateUserDto {
   phoneNumber?: string;
 
   @IsOptional()
-  @IsEnum(Role, { message: 'role must be either admin or customer' })
+  @IsEnum(Role, { message: 'role must be admin, organizer or customer' })
   role?: Role;
 
   @IsOptional()

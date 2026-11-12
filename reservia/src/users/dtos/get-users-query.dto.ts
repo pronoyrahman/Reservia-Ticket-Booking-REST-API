@@ -5,7 +5,7 @@ import { Role } from '../../common/enums/role.enum.js';
 
 export class GetUsersQueryDto extends PaginationQueryDto {
   @IsOptional()
-  @IsEnum(Role, { message: 'role must be either admin or customer' })
+  @IsEnum(Role, { message: 'role must be admin, organizer or customer' })
   role?: Role;
 
   @IsOptional()

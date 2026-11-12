@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -12,14 +13,34 @@ import { Users } from './entities/users.entity.js';
 import { CreateUserDto } from './dtos/create-user.dto.js';
 import { UpdateUserDto } from './dtos/update-user.dto.js';
 import { GetUsersQueryDto } from './dtos/get-users-query.dto.js';
+import { Role } from '../common/enums/role.enum.js';
 
 @Injectable()
-export class UsersService {
+export class UsersService implements OnModuleInit {
   constructor(
     @InjectRepository(Users)
     private readonly usersRepo: Repository<Users>,
     private readonly configService: ConfigService,
   ) {}
+
+  // creates the first admin from .env when the app starts (README BR-22)
+  async onModuleInit(): Promise<void> {
+    const email = this.configService.getOrThrow<string>('SEED_ADMIN_EMAIL');
+    const usr = await this.usersRepo.findOneBy({ email: email });
+    if (usr) {
+      return;
+    }
+
+    const admin = this.usersRepo.create({
+      name: 'System Admin',
+      email: email,
+      passwordHash: await this.hashPassword(
+        this.configService.getOrThrow<string>('SEED_ADMIN_PASSWORD'),
+      ),
+      role: Role.Admin,
+    });
+    await this.usersRepo.save(admin);
+  }
 
   private async hashPassword(password: string): Promise<string> {
     const rounds = Number(this.configService.get('BCRYPT_SALT_ROUNDS') ?? 10);
@@ -140,4 +161,6 @@ export class UsersService {
       throw new NotFoundException(`User with id ${id} not found`);
     }
   }
+
+  
 }
