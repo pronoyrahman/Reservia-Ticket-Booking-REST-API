@@ -7,6 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   Between,
+  DataSource,
   FindOptionsWhere,
   ILike,
   LessThanOrEqual,
@@ -14,6 +15,7 @@ import {
   Repository,
 } from 'typeorm';
 import { Resources } from './entities/resources.entity.js';
+import { Seats } from '../seats/entities/seats.entity.js';
 import type { Locations } from '../locations/entities/locations.entity.js';
 import { CreateResourceDto } from './dtos/create-resource.dto.js';
 import { ReplaceResourceDto } from './dtos/replace-resource.dto.js';
@@ -27,6 +29,7 @@ export class ResourcesService {
     @InjectRepository(Resources)
     private readonly resourcesRepo: Repository<Resources>,
     private readonly locationsService: LocationsService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async createResource(resource: CreateResourceDto): Promise<Resources> {
@@ -34,6 +37,13 @@ export class ResourcesService {
       throw new BadRequestException('startsAt must be in the future');
     }
     this.checkDates(resource.startsAt, resource.endsAt);
+
+    const seatsPerRow = resource.seatsPerRow ?? 10;
+    if (Math.ceil(resource.capacity / seatsPerRow) > 26) {
+      throw new BadRequestException(
+        'capacity / seatsPerRow needs more than 26 rows (A-Z)',
+      );
+    }
 
     const location = await this.locationsService.getLocationById(
       resource.locationId,
@@ -44,14 +54,40 @@ export class ResourcesService {
       );
     }
 
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
     try {
-      const resourceEntity = this.resourcesRepo.create({
+      const resourceEntity = queryRunner.manager.create(Resources, {
         ...resource,
+        seatsPerRow: seatsPerRow,
         location: location,
       });
-      return await this.resourcesRepo.save(resourceEntity);
+      const savedResource = await queryRunner.manager.save(resourceEntity);
+
+      const seats: Seats[] = [];
+      for (let i = 0; i < resource.capacity; i++) {
+        const rowLetter = String.fromCharCode(65 + Math.floor(i / seatsPerRow));
+        const columnNumber = (i % seatsPerRow) + 1;
+        seats.push(
+          queryRunner.manager.create(Seats, {
+            resource: savedResource,
+            seatNumber: `${rowLetter}${columnNumber}`,
+            rowLetter: rowLetter,
+            columnNumber: columnNumber,
+          }),
+        );
+      }
+      
+      await queryRunner.manager.save(seats);
+
+      await queryRunner.commitTransaction();
+      return savedResource;
     } catch {
-      throw new BadRequestException('Failed to create resource');
+      await queryRunner.rollbackTransaction();
+      throw new BadRequestException('Failed to create resource with seats');
+    } finally {
+      await queryRunner.release();
     }
   }
 
