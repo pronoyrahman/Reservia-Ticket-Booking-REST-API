@@ -1,5 +1,14 @@
-import {Column, CreateDateColumn,Entity,PrimaryGeneratedColumn,Unique,UpdateDateColumn,DeleteDateColumn} from 'typeorm';
-
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  Unique,
+  UpdateDateColumn,
+  DeleteDateColumn,
+} from 'typeorm';
+import type { Resources } from '../../resources/entities/resources.entity.js';
 @Entity('locations')
 @Unique(['name', 'address'])
 export class Locations {
@@ -54,6 +63,9 @@ export class Locations {
   })
   isActive: boolean;
 
+  @OneToMany('Resources', (resource: Resources) => resource.location)
+  resources: Resources[];
+
   @CreateDateColumn({
     name: 'created_at',
     type: 'timestamptz',
@@ -65,7 +77,7 @@ export class Locations {
     type: 'timestamptz',
   })
   updatedAt: Date;
-    @DeleteDateColumn({
+  @DeleteDateColumn({
     name: 'deleted_at',
     type: 'timestamptz',
   })

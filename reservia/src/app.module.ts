@@ -5,6 +5,7 @@ import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { UsersModule } from './users/users.module.js';
 import { LocationsModule } from './locations/locations.module.js';
+import { ResourcesModule } from './resources/resources.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { envValidationSchema } from './config/env.validation.js';
 
@@ -29,6 +30,7 @@ import { envValidationSchema } from './config/env.validation.js';
     }),
     UsersModule,
     LocationsModule,
+    ResourcesModule,
     AuthModule,
   ],
   controllers: [AppController],

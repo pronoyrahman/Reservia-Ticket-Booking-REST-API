@@ -1,4 +1,9 @@
-import {Injectable,NotFoundException,BadRequestException,ConflictException,} from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ILike, Repository } from 'typeorm';
 import { Locations } from './entities/locations.entity.js';

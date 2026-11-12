@@ -24,8 +24,8 @@ export class CreateLocationDto {
   city: string;
 
   @IsString()
-@IsNotEmpty()
-address: string;
+  @IsNotEmpty()
+  address: string;
 
   @IsOptional()
   @IsNumber()
