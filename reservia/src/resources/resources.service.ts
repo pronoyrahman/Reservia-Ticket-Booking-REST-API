@@ -8,6 +8,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   Between,
+  MoreThan,
   DataSource,
   FindOptionsWhere,
   ILike,
@@ -25,6 +26,8 @@ import { ResourceQueryDto } from './dtos/resource-query.dto.js';
 import { LocationsService } from '../locations/locations.service.js';
 import type { JwtPayload } from '../auth/jwt.strategy.js';
 import { Role } from '../common/enums/role.enum.js';
+  import { SeatHolds } from '../holds/entities/seat-holds.entity.js';
+  import { HoldStatus } from '../common/enums/hold-status.enum.js';
 
 @Injectable()
 export class ResourcesService {
@@ -209,8 +212,23 @@ export class ResourcesService {
     return `Resource updated with id ${id}`;
   }
 
-  async deleteResource(id: number, user: JwtPayload): Promise<string> {
+    async deleteResource(id: number, user: JwtPayload): Promise<string> {
     await this.getOwnedResource(id, user);
+
+    // BR-15: a resource with active holds cannot be deleted (bookings check after Rafsan's table)
+    const activeHolds = await this.dataSource.getRepository(SeatHolds).count({
+      where: {
+        seat: { resource: { id: id } },
+        status: HoldStatus.Active,
+        expiresAt: MoreThan(new Date()),
+      },
+    });
+    if (activeHolds > 0) {
+      throw new ConflictException(
+        `Resource with id ${id} has ${activeHolds} active hold(s) and cannot be deleted; set isAvailable to false instead`,
+      );
+    }
+
     const result = (await this.resourcesRepo.softDelete(id)).affected;
     if (result != null && result > 0) {
       return `Resource deleted with id ${id}`;

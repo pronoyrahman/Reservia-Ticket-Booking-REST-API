@@ -16,6 +16,7 @@ import { UpdateSeatDto } from './dtos/update-seat.dto.js';
 import { SeatQueryDto } from './dtos/seat-query.dto.js';
 import type { JwtPayload } from '../auth/jwt.strategy.js';
 import { Role } from '../common/enums/role.enum.js';
+import { SeatHolds } from '../holds/entities/seat-holds.entity.js';
 
 @Injectable()
 export class SeatsService {
@@ -161,7 +162,7 @@ export class SeatsService {
     return `Seat updated with id ${id}`;
   }
 
-  async deleteSeat(id: number, user: JwtPayload): Promise<string> {
+    async deleteSeat(id: number, user: JwtPayload): Promise<string> {
     const seat = await this.getOwnedSeat(id, user);
 
     const queryRunner = this.dataSource.createQueryRunner();
@@ -177,10 +178,20 @@ export class SeatsService {
           `Resource with id ${seat.resource.id} not found`,
         );
       }
+
+      // BR-15: a seat that was ever held cannot be deleted (tickets check after Rafsan's table)
+      const timesHeld = await queryRunner.manager.count(SeatHolds, {
+        where: { seat: { id: id } },
+      });
+      if (timesHeld > 0) {
+        throw new ConflictException(
+          `Seat ${seat.seatNumber} was held before and cannot be deleted; set its status to blocked instead`,
+        );
+      }
+
       if (resource.capacity <= 1) {
         throw new ConflictException('A resource must keep at least one seat');
       }
-      // BR-15: later also return 409 if this seat was ever held or sold
 
       await queryRunner.manager.delete(Seats, id);
       await queryRunner.manager.update(Resources, resource.id, {
