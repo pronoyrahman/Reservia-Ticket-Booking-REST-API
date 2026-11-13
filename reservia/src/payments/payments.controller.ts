@@ -5,43 +5,42 @@ import {
   Param,
   ParseIntPipe,
   Post,
+  Query,
 } from '@nestjs/common';
-import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { PaymentsService } from './payments.service.js';
+import { CreatePaymentDto } from './dtos/create-payment.dto.js';
+import { PaymentQueryDto } from './dtos/payment-query.dto.js';
+import { Payments } from './entities/payments.entity.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { Role } from '../common/enums/role.enum.js';
 import type { JwtPayload } from '../auth/jwt.strategy.js';
-import { MockWebhookDto } from './dtos/mock-webhook.dto.js';
-import { PaymentsService } from './payments.service.js';
 
 @Controller('payments')
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
-  @Post('webhook/mock')
-  @Roles(Role.Admin)
-  handleMockWebhook(@Body() dto: MockWebhookDto) {
-    return this.paymentsService.handleMockWebhook(
-      dto.payment_id,
-      dto.status,
-      dto.amount,
-    );
+  @Post('create-payment')
+  @Roles(Role.Customer)
+  async createPayment(
+    @Body() payment: CreatePaymentDto,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<Payments> {
+    return await this.paymentsService.createPayment(payment, user);
   }
 
-  @Post(':bookingId/initiate')
-  @Roles(Role.Customer)
-  initiate(
-    @Param('bookingId', ParseIntPipe) bookingId: number,
-    @CurrentUser() user: JwtPayload,
-  ) {
-    return this.paymentsService.initiate(bookingId, user.id);
+  @Get()
+  @Roles(Role.Admin)
+  async getAllPayments(@Query() query: PaymentQueryDto) {
+    return await this.paymentsService.getAllPayments(query);
   }
 
   @Get(':id')
-  @Roles(Role.Customer)
-  findOne(
+  @Roles(Role.Customer, Role.Admin)
+  async getPaymentById(
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: JwtPayload,
-  ) {
-    return this.paymentsService.findById(id, user.id);
+  ): Promise<Payments> {
+    return await this.paymentsService.getPaymentById(id, user);
   }
 }
