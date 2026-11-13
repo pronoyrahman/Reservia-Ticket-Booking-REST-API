@@ -1,9 +1,10 @@
 
-
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { UsersService } from '../users/users.service.js';
+import { Users } from '../users/entities/users.entity.js';
 
 export type JwtPayload = {
   id: number;
@@ -13,7 +14,10 @@ export type JwtPayload = {
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(configService: ConfigService) {
+  constructor(
+    configService: ConfigService,
+    private readonly usersService: UsersService,
+  ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
@@ -21,11 +25,22 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  validate(payloads: JwtPayload): JwtPayload {
+  
+  async validate(payloads: JwtPayload): Promise<JwtPayload> {
+    let user: Users;
+    try {
+      user = await this.usersService.getUserById(payloads.id);
+    } catch {
+      throw new UnauthorizedException('This account no longer exists');
+    }
+    if (!user.isActive) {
+      throw new UnauthorizedException('This account is deactivated');
+    }
+
     return {
-      id: payloads.id,
-      email: payloads.email,
-      role: payloads.role,
+      id: user.id,
+      email: user.email,
+      role: user.role,
     };
   }
 }
