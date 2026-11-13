@@ -8,11 +8,12 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   Between,
-  MoreThan,
   DataSource,
   FindOptionsWhere,
   ILike,
+  In,
   LessThanOrEqual,
+  MoreThan,
   MoreThanOrEqual,
   Repository,
 } from 'typeorm';
@@ -26,9 +27,13 @@ import { ResourceQueryDto } from './dtos/resource-query.dto.js';
 import { LocationsService } from '../locations/locations.service.js';
 import type { JwtPayload } from '../auth/jwt.strategy.js';
 import { Role } from '../common/enums/role.enum.js';
-  import { SeatHolds } from '../holds/entities/seat-holds.entity.js';
-  import { HoldStatus } from '../common/enums/hold-status.enum.js';
-  import { SeatStatus } from '../common/enums/seat-status.enum.js';
+import { SeatHolds } from '../holds/entities/seat-holds.entity.js';
+import { Bookings } from '../bookings/entities/bookings.entity.js';
+import { Tickets } from '../tickets/entities/tickets.entity.js';
+import { HoldStatus } from '../common/enums/hold-status.enum.js';
+import { SeatStatus } from '../common/enums/seat-status.enum.js';
+import { BookingStatus } from '../common/enums/booking-status.enum.js';
+import { TicketStatus } from '../common/enums/ticket-status.enum.js';
 import { SeatAvailability } from '../common/enums/seat-availability.enum.js';
 
 export type SeatMapSeat = {
@@ -181,25 +186,7 @@ export class ResourcesService {
     return resource;
   }
 
-  async replaceResource(
-    id: number,
-    resource: ReplaceResourceDto,
-    user: JwtPayload,
-  ): Promise<string> {
-    const oldResource = await this.getOwnedResource(id, user);
-    this.checkDates(resource.startsAt, resource.endsAt);
-    this.checkNewStart(oldResource, resource.startsAt);
-    const location = await this.getLocationForUpdate(
-      oldResource,
-      resource.locationId,
-    );
-
-    this.resourcesRepo.merge(oldResource, resource);
-    oldResource.location = location;
-    await this.resourcesRepo.save(oldResource);
-    return `Resource updated with id ${id}`;
-  }
-    async getSeatMap(
+  async getSeatMap(
     id: number,
     user?: JwtPayload | null,
   ): Promise<{
@@ -239,7 +226,16 @@ export class ResourcesService {
     for (const hold of activeHolds) {
       holdBySeatId.set(hold.seat.id, hold);
     }
-    // TODO after Rafsan's tickets: seats with an issued/used ticket are UNAVAILABLE
+
+    // BR-03: a seat with an issued or used ticket is sold
+    const soldTickets = await this.dataSource.getRepository(Tickets).find({
+      where: {
+        seat: { resource: { id: id } },
+        status: In([TicketStatus.Issued, TicketStatus.Used]),
+      },
+      relations: { seat: true },
+    });
+    const soldSeatIds = new Set(soldTickets.map((ticket) => ticket.seat.id));
 
     const summary = { available: 0, heldByYou: 0, unavailable: 0, blocked: 0 };
     const seatMap: SeatMapSeat[] = seats.map((seat) => {
@@ -256,6 +252,11 @@ export class ResourcesService {
         return { ...base, availability: SeatAvailability.Blocked };
       }
 
+      if (soldSeatIds.has(seat.id)) {
+        summary.unavailable++;
+        return { ...base, availability: SeatAvailability.Unavailable };
+      }
+
       const hold = holdBySeatId.get(seat.id);
       if (hold && user && hold.user.id === user.id) {
         summary.heldByYou++;
@@ -265,7 +266,9 @@ export class ResourcesService {
           holdId: hold.id,
           remainingSeconds: Math.max(
             0,
-            Math.floor((new Date(hold.expiresAt).getTime() - Date.now()) / 1000),
+            Math.floor(
+              (new Date(hold.expiresAt).getTime() - Date.now()) / 1000,
+            ),
           ),
         };
       }
@@ -292,6 +295,26 @@ export class ResourcesService {
     };
   }
 
+  async replaceResource(
+    id: number,
+    resource: ReplaceResourceDto,
+    user: JwtPayload,
+  ): Promise<string> {
+    const oldResource = await this.getOwnedResource(id, user);
+    await this.checkLockedFields(oldResource, resource);
+    this.checkDates(resource.startsAt, resource.endsAt);
+    this.checkNewStart(oldResource, resource.startsAt);
+    const location = await this.getLocationForUpdate(
+      oldResource,
+      resource.locationId,
+    );
+
+    this.resourcesRepo.merge(oldResource, resource);
+    oldResource.location = location;
+    await this.resourcesRepo.save(oldResource);
+    return `Resource updated with id ${id}`;
+  }
+
   async updateResource(
     id: number,
     resource: UpdateResourceDto,
@@ -301,6 +324,7 @@ export class ResourcesService {
       throw new BadRequestException('Nothing to update');
     }
     const oldResource = await this.getOwnedResource(id, user);
+    await this.checkLockedFields(oldResource, resource);
     this.checkDates(
       resource.startsAt ?? oldResource.startsAt,
       resource.endsAt ?? oldResource.endsAt,
@@ -317,10 +341,10 @@ export class ResourcesService {
     return `Resource updated with id ${id}`;
   }
 
-    async deleteResource(id: number, user: JwtPayload): Promise<string> {
+  async deleteResource(id: number, user: JwtPayload): Promise<string> {
     await this.getOwnedResource(id, user);
 
-    // BR-15: a resource with active holds cannot be deleted (bookings check after Rafsan's table)
+    // BR-15: a resource with bookings or active holds cannot be deleted
     const activeHolds = await this.dataSource.getRepository(SeatHolds).count({
       where: {
         seat: { resource: { id: id } },
@@ -331,6 +355,15 @@ export class ResourcesService {
     if (activeHolds > 0) {
       throw new ConflictException(
         `Resource with id ${id} has ${activeHolds} active hold(s) and cannot be deleted; set isAvailable to false instead`,
+      );
+    }
+
+    const bookings = await this.dataSource.getRepository(Bookings).count({
+      where: { resource: { id: id } },
+    });
+    if (bookings > 0) {
+      throw new ConflictException(
+        `Resource with id ${id} has ${bookings} booking(s) and cannot be deleted; set isAvailable to false instead`,
       );
     }
 
@@ -357,6 +390,40 @@ export class ResourcesService {
       throw new ForbiddenException('You can only change your own resources');
     }
     return resource;
+  }
+
+  // BR-19: once a resource has pending or confirmed bookings,
+  // startsAt, endsAt, location and price cannot change
+  private async checkLockedFields(
+    oldResource: Resources,
+    resource: UpdateResourceDto,
+  ): Promise<void> {
+    const changed =
+      (resource.startsAt !== undefined &&
+        new Date(resource.startsAt).getTime() !==
+          new Date(oldResource.startsAt).getTime()) ||
+      (resource.endsAt !== undefined &&
+        new Date(resource.endsAt).getTime() !==
+          new Date(oldResource.endsAt).getTime()) ||
+      (resource.locationId !== undefined &&
+        resource.locationId !== oldResource.location.id) ||
+      (resource.pricePerTicket !== undefined &&
+        Number(resource.pricePerTicket) !== Number(oldResource.pricePerTicket));
+    if (!changed) {
+      return;
+    }
+
+    const bookings = await this.dataSource.getRepository(Bookings).count({
+      where: {
+        resource: { id: oldResource.id },
+        status: In([BookingStatus.Pending, BookingStatus.Confirmed]),
+      },
+    });
+    if (bookings > 0) {
+      throw new ConflictException(
+        `Resource with id ${oldResource.id} has bookings; startsAt, endsAt, locationId and pricePerTicket cannot change`,
+      );
+    }
   }
 
   private checkNewStart(oldResource: Resources, startsAt?: Date): void {
