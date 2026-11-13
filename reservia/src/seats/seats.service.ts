@@ -17,6 +17,7 @@ import { SeatQueryDto } from './dtos/seat-query.dto.js';
 import type { JwtPayload } from '../auth/jwt.strategy.js';
 import { Role } from '../common/enums/role.enum.js';
 import { SeatHolds } from '../holds/entities/seat-holds.entity.js';
+import { Tickets } from '../tickets/entities/tickets.entity.js';
 
 @Injectable()
 export class SeatsService {
@@ -162,7 +163,7 @@ export class SeatsService {
     return `Seat updated with id ${id}`;
   }
 
-    async deleteSeat(id: number, user: JwtPayload): Promise<string> {
+  async deleteSeat(id: number, user: JwtPayload): Promise<string> {
     const seat = await this.getOwnedSeat(id, user);
 
     const queryRunner = this.dataSource.createQueryRunner();
@@ -179,13 +180,21 @@ export class SeatsService {
         );
       }
 
-      // BR-15: a seat that was ever held cannot be deleted (tickets check after Rafsan's table)
+      // BR-15: a seat that was ever held or sold cannot be deleted
       const timesHeld = await queryRunner.manager.count(SeatHolds, {
         where: { seat: { id: id } },
       });
       if (timesHeld > 0) {
         throw new ConflictException(
           `Seat ${seat.seatNumber} was held before and cannot be deleted; set its status to blocked instead`,
+        );
+      }
+      const timesSold = await queryRunner.manager.count(Tickets, {
+        where: { seat: { id: id } },
+      });
+      if (timesSold > 0) {
+        throw new ConflictException(
+          `Seat ${seat.seatNumber} was sold before and cannot be deleted; set its status to blocked instead`,
         );
       }
 
