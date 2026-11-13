@@ -28,6 +28,19 @@ import type { JwtPayload } from '../auth/jwt.strategy.js';
 import { Role } from '../common/enums/role.enum.js';
   import { SeatHolds } from '../holds/entities/seat-holds.entity.js';
   import { HoldStatus } from '../common/enums/hold-status.enum.js';
+  import { SeatStatus } from '../common/enums/seat-status.enum.js';
+import { SeatAvailability } from '../common/enums/seat-availability.enum.js';
+
+export type SeatMapSeat = {
+  id: number;
+  seatNumber: string;
+  rowLetter: string;
+  columnNumber: number;
+  isAccessible: boolean;
+  availability: SeatAvailability;
+  holdId?: number;
+  remainingSeconds?: number;
+};
 
 @Injectable()
 export class ResourcesService {
@@ -185,6 +198,98 @@ export class ResourcesService {
     oldResource.location = location;
     await this.resourcesRepo.save(oldResource);
     return `Resource updated with id ${id}`;
+  }
+    async getSeatMap(
+    id: number,
+    user?: JwtPayload | null,
+  ): Promise<{
+    resource: {
+      id: number;
+      name: string;
+      startsAt: Date;
+      pricePerTicket: number;
+      capacity: number;
+      location: string;
+    };
+    summary: {
+      available: number;
+      heldByYou: number;
+      unavailable: number;
+      blocked: number;
+    };
+    seats: SeatMapSeat[];
+  }> {
+    const resource = await this.getResourceById(id);
+
+    const seats = await this.dataSource.getRepository(Seats).find({
+      where: { resource: { id: id } },
+      order: { rowLetter: 'ASC', columnNumber: 'ASC' },
+    });
+
+    // BR-03: only active holds that have not expired keep a seat
+    const activeHolds = await this.dataSource.getRepository(SeatHolds).find({
+      where: {
+        seat: { resource: { id: id } },
+        status: HoldStatus.Active,
+        expiresAt: MoreThan(new Date()),
+      },
+      relations: { seat: true, user: true },
+    });
+    const holdBySeatId = new Map<number, SeatHolds>();
+    for (const hold of activeHolds) {
+      holdBySeatId.set(hold.seat.id, hold);
+    }
+    // TODO after Rafsan's tickets: seats with an issued/used ticket are UNAVAILABLE
+
+    const summary = { available: 0, heldByYou: 0, unavailable: 0, blocked: 0 };
+    const seatMap: SeatMapSeat[] = seats.map((seat) => {
+      const base = {
+        id: seat.id,
+        seatNumber: seat.seatNumber,
+        rowLetter: seat.rowLetter,
+        columnNumber: seat.columnNumber,
+        isAccessible: seat.isAccessible,
+      };
+
+      if (seat.status === SeatStatus.Blocked) {
+        summary.blocked++;
+        return { ...base, availability: SeatAvailability.Blocked };
+      }
+
+      const hold = holdBySeatId.get(seat.id);
+      if (hold && user && hold.user.id === user.id) {
+        summary.heldByYou++;
+        return {
+          ...base,
+          availability: SeatAvailability.HeldByYou,
+          holdId: hold.id,
+          remainingSeconds: Math.max(
+            0,
+            Math.floor((new Date(hold.expiresAt).getTime() - Date.now()) / 1000),
+          ),
+        };
+      }
+      if (hold) {
+        summary.unavailable++;
+        return { ...base, availability: SeatAvailability.Unavailable };
+      }
+
+      summary.available++;
+      return { ...base, availability: SeatAvailability.Available };
+    });
+
+    return {
+      resource: {
+        id: resource.id,
+        name: resource.name,
+        startsAt: resource.startsAt,
+        pricePerTicket: resource.pricePerTicket,
+        capacity: resource.capacity,
+        location: resource.location.name,
+      },
+      summary: summary,
+      seats: seatMap,
+    };
   }
 
   async updateResource(
