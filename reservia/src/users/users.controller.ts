@@ -14,6 +14,7 @@ import { UsersService } from './users.service.js';
 import { CreateUserDto } from './dtos/create-user.dto.js';
 import { UpdateUserDto } from './dtos/update-user.dto.js';
 import { GetUsersQueryDto } from './dtos/get-users-query.dto.js';
+import { ReplaceUserDto } from './dtos/replace-user.dto.js';
 import { Users } from './entities/users.entity.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { Role } from '../common/enums/role.enum.js';
@@ -41,7 +42,7 @@ export class UsersController {
   @Put('updateUserFully/:id')
   async updateUserFully(
     @Param('id', ParseIntPipe) id: number,
-    @Body() user: UpdateUserDto,
+    @Body() user: ReplaceUserDto,
   ): Promise<Users> {
     return await this.usersService.replaceUser(id, user);
   }
