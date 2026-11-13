@@ -4,11 +4,13 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Patch,
   Post,
 } from '@nestjs/common';
 import { AuthService } from './auth.service.js';
 import { RegisterDto } from './dtos/register.dto.js';
 import { LoginDto } from './dtos/login.dto.js';
+import { ChangePasswordDto } from './dtos/change-password.dto.js';
 import { Users } from '../users/entities/users.entity.js';
 import { Public } from '../common/decorators/public.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
@@ -34,5 +36,13 @@ export class AuthController {
   @Get('me')
   async getProfile(@CurrentUser() user: JwtPayload): Promise<Users> {
     return await this.authService.getProfile(user.id);
+  }
+
+  @Patch('change-password')
+  async changePassword(
+    @CurrentUser() user: JwtPayload,
+    @Body() passwords: ChangePasswordDto,
+  ): Promise<string> {
+    return await this.authService.changePassword(user.id, passwords);
   }
 }

@@ -1,10 +1,4 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  NotFoundException,
-  OnModuleInit,
-} from '@nestjs/common';
+import {BadRequestException,ConflictException,Injectable,NotFoundException,OnModuleInit,} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ILike, Repository } from 'typeorm';
@@ -22,13 +16,12 @@ import { Role } from '../common/enums/role.enum.js';
 
 @Injectable()
 export class UsersService implements OnModuleInit {
-  constructor(
-    @InjectRepository(Users)
-    private readonly usersRepo: Repository<Users>,
+  constructor(@InjectRepository(Users)private readonly usersRepo: Repository<Users>,
     private readonly configService: ConfigService,
-  ) {}
+  ) {
 
-  // creates the first admin from .env when the app starts (README BR-22)
+  }
+
   async onModuleInit(): Promise<void> {
     const email = this.configService.getOrThrow<string>('SEED_ADMIN_EMAIL');
     const usr = await this.usersRepo.findOneBy({ email: email });
@@ -116,7 +109,6 @@ export class UsersService implements OnModuleInit {
     return usr;
   }
 
-  // only for login: password_hash is select: false, so it is asked for here
   async getUserByEmailWithPassword(email: string): Promise<Users | null> {
     return await this.usersRepo.findOne({
       where: { email: email },
@@ -129,19 +121,38 @@ export class UsersService implements OnModuleInit {
         passwordHash: true,
       },
     });
+
   }
 
-    async replaceUser(id: number, user: ReplaceUserDto): Promise<Users> {
-    return await this.updateUser(id, user);
+  async replaceUser(
+    id: number,
+    user: ReplaceUserDto,
+    currentUserId: number,
+  ): Promise<Users> {
+    return await this.updateUser(id, user, currentUserId);
   }
 
-  async updateUser(id: number, user: UpdateUserDto): Promise<Users> {
+  async updateUser(
+    id: number,
+    user: UpdateUserDto,
+    currentUserId: number,
+  ): Promise<Users> {
     const usr = await this.getUserById(id);
     if (user.email) {
       await this.checkEmailFree(user.email, id);
+
     }
 
+    if (id === currentUserId) {
+      if (user.role && user.role !== usr.role) {
+        throw new ConflictException('You cannot change your own role');
+      }
+      if (user.isActive === false) {
+        throw new ConflictException('You cannot deactivate your own account');
+      }
+    }
 
+   
     if (user.role && user.role !== usr.role && (await this.isUserInUse(id))) {
       throw new ConflictException(
         `User with id ${id} owns locations, resources, holds or bookings, so the role cannot be changed; set isActive to false instead`,
@@ -165,10 +176,14 @@ export class UsersService implements OnModuleInit {
     return await this.getUserById(id);
   }
 
-  async deleteUser(id: number): Promise<string> {
+  async deleteUser(id: number, currentUserId: number): Promise<string> {
     await this.getUserById(id);
 
-    // BR-21: a user who owns records cannot be deleted
+    if (id === currentUserId) {
+      throw new ConflictException('You cannot delete your own account');
+    }
+
+
     if (await this.isUserInUse(id)) {
       throw new ConflictException(
         `User with id ${id} owns locations, resources, holds or bookings, so it cannot be deleted; set isActive to false instead`,
@@ -183,7 +198,6 @@ export class UsersService implements OnModuleInit {
     }
   }
 
-  // true when the user owns a location, resource, hold or booking
   private async isUserInUse(id: number): Promise<boolean> {
     const manager = this.usersRepo.manager;
     return (
