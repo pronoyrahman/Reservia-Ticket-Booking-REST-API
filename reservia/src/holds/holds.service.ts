@@ -6,14 +6,22 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, FindOptionsWhere, MoreThan, Repository } from 'typeorm';
+import {
+  DataSource,
+  FindOptionsWhere,
+  In,
+  MoreThan,
+  Repository,
+} from 'typeorm';
 import { SeatHolds } from './entities/seat-holds.entity.js';
 import { CreateHoldDto } from './dtos/create-hold.dto.js';
 import { HoldQueryDto } from './dtos/hold-query.dto.js';
 import { Users } from '../users/entities/users.entity.js';
 import { Seats } from '../seats/entities/seats.entity.js';
+import { Tickets } from '../tickets/entities/tickets.entity.js';
 import { HoldStatus } from '../common/enums/hold-status.enum.js';
 import { SeatStatus } from '../common/enums/seat-status.enum.js';
+import { TicketStatus } from '../common/enums/ticket-status.enum.js';
 import { Role } from '../common/enums/role.enum.js';
 import type { JwtPayload } from '../auth/jwt.strategy.js';
 
@@ -25,24 +33,21 @@ export class HoldsService {
     private readonly dataSource: DataSource,
     private readonly configService: ConfigService,
   ) {}
-
-  // T3: users -> seats -> seat_holds, all in one transaction
   async createHold(hold: CreateHoldDto, userId: number): Promise<SeatHolds> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      // 1. lock the customer row (two parallel requests cannot pass BR-02 together)
       const user = await queryRunner.manager.findOne(Users, {
         where: { id: userId },
         lock: { mode: 'pessimistic_write' },
       });
-      if (!user) {
+      if (!user) 
+      {
         throw new NotFoundException(`User with id ${userId} not found`);
       }
 
-      // 2. lock the seat row
       const seat = await queryRunner.manager
         .createQueryBuilder(Seats, 'seat')
         .innerJoinAndSelect('seat.resource', 'resource')
@@ -53,8 +58,6 @@ export class HoldsService {
       if (!seat) {
         throw new NotFoundException(`Seat with id ${hold.seatId} not found`);
       }
-
-      // 3. overdue active holds on this seat become expired
       await queryRunner.manager
         .createQueryBuilder()
         .update(SeatHolds)
@@ -64,7 +67,6 @@ export class HoldsService {
         .andWhere('expires_at <= now()')
         .execute();
 
-      // 4. BR-05: resource must be open and in the future
       const resource = seat.resource;
       if (resource.deletedAt || !resource.isAvailable) {
         throw new ConflictException('This resource is not open for booking');
@@ -73,7 +75,6 @@ export class HoldsService {
         throw new ConflictException('This resource has already started');
       }
 
-      // 5. BR-03: seat must be available
       if (seat.status === SeatStatus.Blocked) {
         throw new ConflictException(`Seat ${seat.seatNumber} is blocked`);
       }
@@ -87,8 +88,16 @@ export class HoldsService {
       if (activeHold) {
         throw new ConflictException(`Seat ${seat.seatNumber} is already held`);
       }
+      const soldTicket = await queryRunner.manager.findOne(Tickets, {
+        where: {
+          seat: { id: seat.id },
+          status: In([TicketStatus.Issued, TicketStatus.Used]),
+        },
+      });
+      if (soldTicket) {
+        throw new ConflictException(`Seat ${seat.seatNumber} is already sold`);
+      }
 
-      // 6. BR-02: max seats per customer per resource
       const maxSeats = Number(
         this.configService.get('MAX_SEATS_PER_CUSTOMER') ?? 4,
       );
@@ -100,13 +109,18 @@ export class HoldsService {
           expiresAt: MoreThan(new Date()),
         },
       });
-      if (myHolds >= maxSeats) {
+      const myTickets = await queryRunner.manager.count(Tickets, {
+        where: {
+          booking: { user: { id: userId }, resource: { id: resource.id } },
+          status: In([TicketStatus.Issued, TicketStatus.Used]),
+        },
+      });
+      if (myHolds + myTickets >= maxSeats) {
         throw new ConflictException(
           `You can hold at most ${maxSeats} seats for this resource`,
         );
       }
 
-      // 7. insert the hold
       const minutes = Number(
         this.configService.get('HOLD_DURATION_MINUTES') ?? 15,
       );
@@ -226,4 +240,6 @@ export class HoldsService {
       Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000),
     );
   }
+
+  
 }

@@ -1,5 +1,5 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller.js';
@@ -18,6 +18,8 @@ import { HoldsModule } from './holds/holds.module.js';
 import { BookingsModule } from './bookings/bookings.module.js';
 import { TicketsModule } from './tickets/tickets.module.js';
 import { PaymentsModule } from './payments/payments.module.js';
+import { AuditModule } from './audit/audit.module.js';
+import { AuditInterceptor } from './audit/audit.interceptor.js';
 
 @Module({
   imports: [
@@ -44,9 +46,10 @@ import { PaymentsModule } from './payments/payments.module.js';
     AuthModule,
     SeatsModule,
     HoldsModule,
-        BookingsModule,
+    BookingsModule,
     TicketsModule,
     PaymentsModule,
+    AuditModule,
   ],
   controllers: [AppController],
   providers: [
@@ -59,12 +62,14 @@ import { PaymentsModule } from './payments/payments.module.js';
       provide: APP_GUARD,
       useClass: RolesGuard,
     },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditInterceptor,
+    },
   ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(RequestIdMiddleware, RequestLoggerMiddleware)
-      .forRoutes('*');
+    consumer.apply(RequestIdMiddleware, RequestLoggerMiddleware).forRoutes('*');
   }
 }
