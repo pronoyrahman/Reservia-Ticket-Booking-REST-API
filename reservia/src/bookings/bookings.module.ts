@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { DevUserGuard } from '../common/dev-support/dev-user.guard.js';
 import { Ticket } from '../tickets/entities/ticket.entity.js';
 import { TicketsModule } from '../tickets/tickets.module.js';
 import { Booking } from './entities/booking.entity.js';
@@ -10,6 +9,6 @@ import { BookingsService } from './bookings.service.js';
 @Module({
   imports: [TypeOrmModule.forFeature([Booking, Ticket]), TicketsModule],
   controllers: [BookingsController],
-  providers: [BookingsService, DevUserGuard],
+  providers: [BookingsService],
 })
 export class BookingsModule {}
