@@ -1,38 +1,64 @@
-import { Module } from '@nestjs/common';
-import { AppController } from './app.controller.js';
-import { AppService } from './app.service.js';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { BookingsModule } from './bookings/bookings.module.js';
-import { TicketsModule } from './tickets/tickets.module.js';
-import { PaymentsModule } from './payments/payments.module.js';
-import { Booking } from './bookings/entities/booking.entity.js';
-import { Ticket } from './tickets/entities/ticket.entity.js';
-import { Payment } from './payments/entities/payment.entity.js';
+import { AppController } from './app.controller.js';
+import { AppService } from './app.service.js';
+import { UsersModule } from './users/users.module.js';
+import { LocationsModule } from './locations/locations.module.js';
+import { ResourcesModule } from './resources/resources.module.js';
+import { AuthModule } from './auth/auth.module.js';
+import { envValidationSchema } from './config/env.validation.js';
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
+import { RolesGuard } from './common/guards/roles.guard.js';
+import { RequestIdMiddleware } from './common/middleware/request-id.middleware.js';
+import { RequestLoggerMiddleware } from './common/middleware/request-logger.middleware.js';
+import { SeatsModule } from './seats/seats.module.js';
+import { HoldsModule } from './holds/holds.module.js';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      validationSchema: envValidationSchema,
+    }),
     TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres' as const,
-        host: config.get<string>('DATABASE_HOST', 'localhost'),
-        port: Number(config.get<string>('DATABASE_PORT', '5432')),
-        username: config.get<string>('DATABASE_USERNAME', 'postgres'),
-        password: config.get<string>('DATABASE_PASSWORD', 'postgres'),
-        database: config.get<string>('DATABASE_NAME', 'reservia_db'),
-        entities: [Booking, Ticket, Payment],
-        synchronize: false,
-        migrationsRun: false,
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres',
+        host: configService.getOrThrow<string>('DATABASE_HOST'),
+        port: Number(configService.getOrThrow('DATABASE_PORT')),
+        username: configService.getOrThrow<string>('DATABASE_USERNAME'),
+        password: configService.getOrThrow<string>('DATABASE_PASSWORD'),
+        database: configService.getOrThrow<string>('DATABASE_NAME'),
+        autoLoadEntities: true,
+        synchronize: true,
       }),
     }),
-    BookingsModule,
-    TicketsModule,
-    PaymentsModule,
+    UsersModule,
+    LocationsModule,
+    ResourcesModule,
+    AuthModule,
+    SeatsModule,
+    HoldsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
+    },
+  ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(RequestIdMiddleware, RequestLoggerMiddleware)
+      .forRoutes('*');
+  }
+}
