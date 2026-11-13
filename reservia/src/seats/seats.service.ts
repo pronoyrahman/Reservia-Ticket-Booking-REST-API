@@ -122,7 +122,8 @@ export class SeatsService {
       where: { id: id },
       relations: { resource: true },
     });
-    if (!seat) {
+    // a seat of a deleted resource is treated as not found
+    if (!seat || !seat.resource) {
       throw new NotFoundException(`Seat with id ${id} not found`);
     }
     return seat;
@@ -135,6 +136,7 @@ export class SeatsService {
   ): Promise<string> {
     const oldSeat = await this.getOwnedSeat(id, user);
     const seatNumber = `${seat.rowLetter}${seat.columnNumber}`;
+    await this.checkRenumber(oldSeat, seatNumber);
     await this.checkDuplicate(oldSeat.resource.id, seatNumber, id);
 
     this.seatsRepo.merge(oldSeat, seat);
@@ -155,6 +157,7 @@ export class SeatsService {
     const seatNumber = `${seat.rowLetter ?? oldSeat.rowLetter}${
       seat.columnNumber ?? oldSeat.columnNumber
     }`;
+    await this.checkRenumber(oldSeat, seatNumber);
     await this.checkDuplicate(oldSeat.resource.id, seatNumber, id);
 
     this.seatsRepo.merge(oldSeat, seat);
@@ -242,6 +245,24 @@ export class SeatsService {
     const seat = await this.getSeatById(id);
     await this.checkResourceOwner(seat.resource.id, user);
     return seat;
+  }
+
+  // a seat that was ever held or sold keeps its number (tickets and holds point to it)
+  private async checkRenumber(seat: Seats, seatNumber: string): Promise<void> {
+    if (seat.seatNumber === seatNumber) {
+      return;
+    }
+    const timesHeld = await this.dataSource.getRepository(SeatHolds).count({
+      where: { seat: { id: seat.id } },
+    });
+    const timesSold = await this.dataSource.getRepository(Tickets).count({
+      where: { seat: { id: seat.id } },
+    });
+    if (timesHeld > 0 || timesSold > 0) {
+      throw new ConflictException(
+        `Seat ${seat.seatNumber} was held or sold before; its number cannot change`,
+      );
+    }
   }
 
   private async checkDuplicate(
