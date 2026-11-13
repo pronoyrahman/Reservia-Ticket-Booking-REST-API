@@ -24,7 +24,7 @@ export class Resources {
   @PrimaryGeneratedColumn()
   id: number;
 
-    @Index()
+  @Index()
   @ManyToOne('Users', { nullable: false, onDelete: 'RESTRICT' })
   @JoinColumn({
     name: 'organizer_id',
@@ -102,7 +102,7 @@ export class Resources {
     default: true,
   })
   isAvailable: boolean;
-   @OneToMany('Seats', (seat: Seats) => seat.resource)
+  @OneToMany('Seats', (seat: Seats) => seat.resource)
   seats: Seats[];
 
   @CreateDateColumn({

@@ -57,6 +57,14 @@ export class ResourcesController {
   ): Promise<Resources> {
     return await this.resourcesService.getResourceById(id);
   }
+    @Public()
+  @Get(':id/seat-map')
+  async getSeatMap(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: JwtPayload | null,
+  ) {
+    return await this.resourcesService.getSeatMap(id, user);
+  }
 
   @Put('updateResourceFully/:id')
   @Roles(Role.Admin, Role.Organizer)
