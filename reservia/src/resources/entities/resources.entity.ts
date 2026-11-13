@@ -13,6 +13,7 @@ import {
 } from 'typeorm';
 import type { Locations } from '../../locations/entities/locations.entity.js';
 import type { Seats } from '../../seats/entities/seats.entity.js';
+import type { Users } from '../../users/entities/users.entity.js';
 
 @Entity('resources')
 @Check('"ends_at" > "starts_at"')
@@ -22,6 +23,13 @@ import type { Seats } from '../../seats/entities/seats.entity.js';
 export class Resources {
   @PrimaryGeneratedColumn()
   id: number;
+
+    @Index()
+  @ManyToOne('Users', { nullable: false, onDelete: 'RESTRICT' })
+  @JoinColumn({
+    name: 'organizer_id',
+  })
+  organizer: Users;
 
   @Index()
   @ManyToOne('Locations', (location: Locations) => location.resources, {

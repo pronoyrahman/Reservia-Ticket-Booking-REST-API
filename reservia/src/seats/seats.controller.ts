@@ -18,7 +18,9 @@ import { SeatQueryDto } from './dtos/seat-query.dto.js';
 import { Seats } from './entities/seats.entity.js';
 import { Public } from '../common/decorators/public.decorator.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { Role } from '../common/enums/role.enum.js';
+import type { JwtPayload } from '../auth/jwt.strategy.js';
 
 @Controller('seats')
 export class SeatsController {
@@ -26,8 +28,11 @@ export class SeatsController {
 
   @Post('create-seat')
   @Roles(Role.Admin, Role.Organizer)
-  async createSeat(@Body() seat: CreateSeatDto): Promise<Seats> {
-    return await this.seatsService.createSeat(seat);
+  async createSeat(
+    @Body() seat: CreateSeatDto,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<Seats> {
+    return await this.seatsService.createSeat(seat, user);
   }
 
   @Public()
@@ -47,8 +52,9 @@ export class SeatsController {
   async updateSeatFully(
     @Param('id', ParseIntPipe) id: number,
     @Body() seat: ReplaceSeatDto,
+    @CurrentUser() user: JwtPayload,
   ): Promise<string> {
-    return await this.seatsService.replaceSeat(id, seat);
+    return await this.seatsService.replaceSeat(id, seat, user);
   }
 
   @Patch('updateSeatPartially/:id')
@@ -56,13 +62,17 @@ export class SeatsController {
   async updateSeatPartially(
     @Param('id', ParseIntPipe) id: number,
     @Body() seat: UpdateSeatDto,
+    @CurrentUser() user: JwtPayload,
   ): Promise<string> {
-    return await this.seatsService.updateSeat(id, seat);
+    return await this.seatsService.updateSeat(id, seat, user);
   }
 
   @Delete(':id')
   @Roles(Role.Admin, Role.Organizer)
-  async deleteSeat(@Param('id', ParseIntPipe) id: number): Promise<string> {
-    return await this.seatsService.deleteSeat(id);
+  async deleteSeat(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<string> {
+    return await this.seatsService.deleteSeat(id, user);
   }
 }

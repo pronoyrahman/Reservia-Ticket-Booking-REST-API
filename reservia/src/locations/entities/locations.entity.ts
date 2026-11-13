@@ -3,17 +3,26 @@ import {
   CreateDateColumn,
   Entity,
   OneToMany,
+  ManyToOne,
+  JoinColumn,
   PrimaryGeneratedColumn,
   Unique,
   UpdateDateColumn,
   DeleteDateColumn,
 } from 'typeorm';
 import type { Resources } from '../../resources/entities/resources.entity.js';
+import type { Users } from '../../users/entities/users.entity.js';
 @Entity('locations')
 @Unique(['name', 'address'])
 export class Locations {
   @PrimaryGeneratedColumn()
   id: number;
+
+  @ManyToOne('Users', { nullable: false, onDelete: 'RESTRICT' })
+  @JoinColumn({
+    name: 'created_by',
+  })
+  createdBy: Users;
 
   @Column({
     name: 'name',
