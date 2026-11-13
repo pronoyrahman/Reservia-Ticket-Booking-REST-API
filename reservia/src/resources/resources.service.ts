@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -22,6 +23,8 @@ import { ReplaceResourceDto } from './dtos/replace-resource.dto.js';
 import { UpdateResourceDto } from './dtos/update-resource.dto.js';
 import { ResourceQueryDto } from './dtos/resource-query.dto.js';
 import { LocationsService } from '../locations/locations.service.js';
+import type { JwtPayload } from '../auth/jwt.strategy.js';
+import { Role } from '../common/enums/role.enum.js';
 
 @Injectable()
 export class ResourcesService {
@@ -32,7 +35,10 @@ export class ResourcesService {
     private readonly dataSource: DataSource,
   ) {}
 
-  async createResource(resource: CreateResourceDto): Promise<Resources> {
+  async createResource(
+    resource: CreateResourceDto,
+    user: JwtPayload,
+  ): Promise<Resources> {
     if (resource.startsAt <= new Date()) {
       throw new BadRequestException('startsAt must be in the future');
     }
@@ -62,6 +68,7 @@ export class ResourcesService {
         ...resource,
         seatsPerRow: seatsPerRow,
         location: location,
+        organizer: { id: user.id },
       });
       const savedResource = await queryRunner.manager.save(resourceEntity);
 
@@ -78,7 +85,6 @@ export class ResourcesService {
           }),
         );
       }
-      
       await queryRunner.manager.save(seats);
 
       await queryRunner.commitTransaction();
@@ -91,7 +97,10 @@ export class ResourcesService {
     }
   }
 
-  async getAllResources(query: ResourceQueryDto): Promise<{
+  async getAllResources(
+    query: ResourceQueryDto,
+    organizerId?: number,
+  ): Promise<{
     data: Resources[];
     meta: { page: number; limit: number; total: number; totalPages: number };
   }> {
@@ -99,6 +108,9 @@ export class ResourcesService {
     const limit = query.limit ?? 10;
 
     const where: FindOptionsWhere<Resources> = {};
+    if (organizerId) {
+      where.organizer = { id: organizerId };
+    }
     if (query.type) {
       where.type = query.type;
     }
@@ -156,8 +168,9 @@ export class ResourcesService {
   async replaceResource(
     id: number,
     resource: ReplaceResourceDto,
+    user: JwtPayload,
   ): Promise<string> {
-    const oldResource = await this.getResourceById(id);
+    const oldResource = await this.getOwnedResource(id, user);
     this.checkDates(resource.startsAt, resource.endsAt);
     const location = await this.locationsService.getLocationById(
       resource.locationId,
@@ -172,11 +185,12 @@ export class ResourcesService {
   async updateResource(
     id: number,
     resource: UpdateResourceDto,
+    user: JwtPayload,
   ): Promise<string> {
     if (Object.keys(resource).length === 0) {
       throw new BadRequestException('Nothing to update');
     }
-    const oldResource = await this.getResourceById(id);
+    const oldResource = await this.getOwnedResource(id, user);
     this.checkDates(
       resource.startsAt ?? oldResource.startsAt,
       resource.endsAt ?? oldResource.endsAt,
@@ -192,13 +206,31 @@ export class ResourcesService {
     return `Resource updated with id ${id}`;
   }
 
-  async deleteResource(id: number): Promise<string> {
+  async deleteResource(id: number, user: JwtPayload): Promise<string> {
+    await this.getOwnedResource(id, user);
     const result = (await this.resourcesRepo.softDelete(id)).affected;
     if (result != null && result > 0) {
       return `Resource deleted with id ${id}`;
     } else {
       throw new NotFoundException(`Resource with id ${id} not found`);
     }
+  }
+
+  private async getOwnedResource(
+    id: number,
+    user: JwtPayload,
+  ): Promise<Resources> {
+    const resource = await this.resourcesRepo.findOne({
+      where: { id: id },
+      relations: { location: true, organizer: true },
+    });
+    if (!resource) {
+      throw new NotFoundException(`Resource with id ${id} not found`);
+    }
+    if (user.role !== Role.Admin && resource.organizer.id !== user.id) {
+      throw new ForbiddenException('You can only change your own resources');
+    }
+    return resource;
   }
 
   private checkDates(startsAt: Date, endsAt: Date): void {

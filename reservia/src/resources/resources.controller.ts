@@ -18,7 +18,9 @@ import { ResourceQueryDto } from './dtos/resource-query.dto.js';
 import { Resources } from './entities/resources.entity.js';
 import { Public } from '../common/decorators/public.decorator.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { Role } from '../common/enums/role.enum.js';
+import type { JwtPayload } from '../auth/jwt.strategy.js';
 
 @Controller('resources')
 export class ResourcesController {
@@ -28,14 +30,24 @@ export class ResourcesController {
   @Roles(Role.Admin, Role.Organizer)
   async createResource(
     @Body() resource: CreateResourceDto,
+    @CurrentUser() user: JwtPayload,
   ): Promise<Resources> {
-    return await this.resourcesService.createResource(resource);
+    return await this.resourcesService.createResource(resource, user);
   }
 
   @Public()
   @Get()
   async getAllResources(@Query() query: ResourceQueryDto) {
     return await this.resourcesService.getAllResources(query);
+  }
+
+  @Get('my')
+  @Roles(Role.Admin, Role.Organizer)
+  async getMyResources(
+    @Query() query: ResourceQueryDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return await this.resourcesService.getAllResources(query, user.id);
   }
 
   @Public()
@@ -51,8 +63,9 @@ export class ResourcesController {
   async updateResourceFully(
     @Param('id', ParseIntPipe) id: number,
     @Body() resource: ReplaceResourceDto,
+    @CurrentUser() user: JwtPayload,
   ): Promise<string> {
-    return await this.resourcesService.replaceResource(id, resource);
+    return await this.resourcesService.replaceResource(id, resource, user);
   }
 
   @Patch('updateResourcePartially/:id')
@@ -60,13 +73,17 @@ export class ResourcesController {
   async updateResourcePartially(
     @Param('id', ParseIntPipe) id: number,
     @Body() resource: UpdateResourceDto,
+    @CurrentUser() user: JwtPayload,
   ): Promise<string> {
-    return await this.resourcesService.updateResource(id, resource);
+    return await this.resourcesService.updateResource(id, resource, user);
   }
 
   @Delete(':id')
   @Roles(Role.Admin, Role.Organizer)
-  async deleteResource(@Param('id', ParseIntPipe) id: number): Promise<string> {
-    return await this.resourcesService.deleteResource(id);
+  async deleteResource(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<string> {
+    return await this.resourcesService.deleteResource(id, user);
   }
 }

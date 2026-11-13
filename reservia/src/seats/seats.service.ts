@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   HttpException,
   Injectable,
   NotFoundException,
@@ -13,6 +14,8 @@ import { CreateSeatDto } from './dtos/create-seat.dto.js';
 import { ReplaceSeatDto } from './dtos/replace-seat.dto.js';
 import { UpdateSeatDto } from './dtos/update-seat.dto.js';
 import { SeatQueryDto } from './dtos/seat-query.dto.js';
+import type { JwtPayload } from '../auth/jwt.strategy.js';
+import { Role } from '../common/enums/role.enum.js';
 
 @Injectable()
 export class SeatsService {
@@ -22,7 +25,9 @@ export class SeatsService {
     private readonly dataSource: DataSource,
   ) {}
 
-  async createSeat(seat: CreateSeatDto): Promise<Seats> {
+  async createSeat(seat: CreateSeatDto, user: JwtPayload): Promise<Seats> {
+    await this.checkResourceOwner(seat.resourceId, user);
+
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -121,8 +126,12 @@ export class SeatsService {
     return seat;
   }
 
-  async replaceSeat(id: number, seat: ReplaceSeatDto): Promise<string> {
-    const oldSeat = await this.getSeatById(id);
+  async replaceSeat(
+    id: number,
+    seat: ReplaceSeatDto,
+    user: JwtPayload,
+  ): Promise<string> {
+    const oldSeat = await this.getOwnedSeat(id, user);
     const seatNumber = `${seat.rowLetter}${seat.columnNumber}`;
     await this.checkDuplicate(oldSeat.resource.id, seatNumber, id);
 
@@ -132,11 +141,15 @@ export class SeatsService {
     return `Seat updated with id ${id}`;
   }
 
-  async updateSeat(id: number, seat: UpdateSeatDto): Promise<string> {
+  async updateSeat(
+    id: number,
+    seat: UpdateSeatDto,
+    user: JwtPayload,
+  ): Promise<string> {
     if (Object.keys(seat).length === 0) {
       throw new BadRequestException('Nothing to update');
     }
-    const oldSeat = await this.getSeatById(id);
+    const oldSeat = await this.getOwnedSeat(id, user);
     const seatNumber = `${seat.rowLetter ?? oldSeat.rowLetter}${
       seat.columnNumber ?? oldSeat.columnNumber
     }`;
@@ -148,8 +161,8 @@ export class SeatsService {
     return `Seat updated with id ${id}`;
   }
 
-  async deleteSeat(id: number): Promise<string> {
-    const seat = await this.getSeatById(id);
+  async deleteSeat(id: number, user: JwtPayload): Promise<string> {
+    const seat = await this.getOwnedSeat(id, user);
 
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -185,6 +198,30 @@ export class SeatsService {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  private async checkResourceOwner(
+    resourceId: number,
+    user: JwtPayload,
+  ): Promise<void> {
+    const resource = await this.dataSource.getRepository(Resources).findOne({
+      where: { id: resourceId },
+      relations: { organizer: true },
+    });
+    if (!resource) {
+      throw new NotFoundException(`Resource with id ${resourceId} not found`);
+    }
+    if (user.role !== Role.Admin && resource.organizer.id !== user.id) {
+      throw new ForbiddenException(
+        'You can only change seats of your own resources',
+      );
+    }
+  }
+
+  private async getOwnedSeat(id: number, user: JwtPayload): Promise<Seats> {
+    const seat = await this.getSeatById(id);
+    await this.checkResourceOwner(seat.resource.id, user);
+    return seat;
   }
 
   private async checkDuplicate(
