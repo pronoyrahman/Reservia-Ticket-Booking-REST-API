@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import type { Users } from '../../users/entities/users.entity.js';
 import type { Seats } from '../../seats/entities/seats.entity.js';
+import type { Bookings } from '../../bookings/entities/bookings.entity.js';
 import { HoldStatus } from '../../common/enums/hold-status.enum.js';
 
 @Entity('seat_holds')
@@ -39,6 +40,15 @@ export class SeatHolds {
     name: 'seat_id',
   })
   seat: Seats;
+
+  @ManyToOne('Bookings', {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({
+    name: 'booking_id',
+  })
+  booking: Bookings | null;
 
   @Column({
     name: 'booking_id',
