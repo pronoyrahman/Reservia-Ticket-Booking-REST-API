@@ -14,6 +14,7 @@ import { RolesGuard } from './common/guards/roles.guard.js';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware.js';
 import { RequestLoggerMiddleware } from './common/middleware/request-logger.middleware.js';
 import { SeatsModule } from './seats/seats.module.js';
+import { HoldsModule } from './holds/holds.module.js';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { SeatsModule } from './seats/seats.module.js';
     ResourcesModule,
     AuthModule,
     SeatsModule,
+    HoldsModule,
   ],
   controllers: [AppController],
   providers: [
