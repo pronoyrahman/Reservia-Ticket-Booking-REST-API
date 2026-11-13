@@ -1,8 +1,8 @@
 import 'dotenv/config';
 import { DataSource } from 'typeorm';
-import { Booking } from '../bookings/entities/booking.entity.js';
-import { Payment } from '../payments/entities/payment.entity.js';
-import { Ticket } from '../tickets/entities/ticket.entity.js';
+import { Bookings } from '../bookings/entities/bookings.entity.js';
+import { Payments } from '../payments/entities/payments.entity.js';
+import { Tickets } from '../tickets/entities/tickets.entity.js';
 
 export default new DataSource({
   type: 'postgres',
@@ -11,7 +11,7 @@ export default new DataSource({
   username: process.env.DATABASE_USERNAME ?? 'postgres',
   password: process.env.DATABASE_PASSWORD ?? 'postgres',
   database: process.env.DATABASE_NAME ?? 'reservia_db',
-  entities: [Booking, Ticket, Payment],
+  entities: [Bookings, Tickets, Payments],
   migrations: ['src/database/migrations/*.{ts,js}'],
   synchronize: false,
 });

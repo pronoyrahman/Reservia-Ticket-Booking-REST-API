@@ -1,14 +1,15 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Ticket } from '../tickets/entities/ticket.entity.js';
-import { TicketsModule } from '../tickets/tickets.module.js';
-import { Booking } from './entities/booking.entity.js';
 import { BookingsController } from './bookings.controller.js';
 import { BookingsService } from './bookings.service.js';
+import { Bookings } from './entities/bookings.entity.js';
+import { MailModule } from '../mail/mail.module.js';
+import { AuditModule } from '../audit/audit.module.js';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Booking, Ticket]), TicketsModule],
+  imports: [TypeOrmModule.forFeature([Bookings]), MailModule, AuditModule],
   controllers: [BookingsController],
   providers: [BookingsService],
+  exports: [BookingsService, TypeOrmModule],
 })
 export class BookingsModule {}

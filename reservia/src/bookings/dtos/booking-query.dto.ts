@@ -1,15 +1,18 @@
 import { Type } from 'class-transformer';
-import { IsInt, Max, Min } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, Min } from 'class-validator';
+import { PaginationQueryDto } from '../../common/dtos/pagination-query.dto.js';
+import { BookingStatus } from '../../common/enums/booking-status.enum.js';
 
-export class BookingQueryDto {
-  @Type(() => Number)
+export class BookingQueryDto extends PaginationQueryDto {
+  @IsOptional()
+  @IsEnum(BookingStatus, {
+    message: 'status must be pending, confirmed, cancelled or expired',
+  })
+  status?: BookingStatus;
+
+  @IsOptional()
   @IsInt()
   @Min(1)
-  page = 1;
-
   @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(100)
-  limit = 10;
+  resourceId?: number;
 }

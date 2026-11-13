@@ -15,6 +15,9 @@ import { RequestIdMiddleware } from './common/middleware/request-id.middleware.j
 import { RequestLoggerMiddleware } from './common/middleware/request-logger.middleware.js';
 import { SeatsModule } from './seats/seats.module.js';
 import { HoldsModule } from './holds/holds.module.js';
+import { BookingsModule } from './bookings/bookings.module.js';
+import { TicketsModule } from './tickets/tickets.module.js';
+import { PaymentsModule } from './payments/payments.module.js';
 
 @Module({
   imports: [
@@ -41,6 +44,9 @@ import { HoldsModule } from './holds/holds.module.js';
     AuthModule,
     SeatsModule,
     HoldsModule,
+        BookingsModule,
+    TicketsModule,
+    PaymentsModule,
   ],
   controllers: [AppController],
   providers: [
