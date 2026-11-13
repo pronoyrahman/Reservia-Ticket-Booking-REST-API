@@ -6,37 +6,37 @@ import {
   ParseIntPipe,
   Post,
   Query,
-  UseGuards,
 } from '@nestjs/common';
-import { DevUserGuard } from '../common/dev-support/dev-user.guard.js';
-import { DevUserId } from '../common/dev-support/dev-user.decorator.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { Role } from '../common/enums/role.enum.js';
+import type { JwtPayload } from '../auth/jwt.strategy.js';
 import { BookingQueryDto } from './dtos/booking-query.dto.js';
 import { CreateBookingDto } from './dtos/create-booking.dto.js';
 import { BookingsService } from './bookings.service.js';
 
 @Controller('bookings')
-@UseGuards(DevUserGuard)
 export class BookingsController {
   constructor(private readonly bookingsService: BookingsService) {}
 
   @Post()
-  create(
-    @DevUserId() userId: number,
-    @Body() dto: CreateBookingDto,
-  ) {
-    return this.bookingsService.create(userId, dto.seat_ids);
+  @Roles(Role.Customer)
+  create(@CurrentUser() user: JwtPayload, @Body() dto: CreateBookingDto) {
+    return this.bookingsService.create(user.id, dto.seat_ids);
   }
 
   @Get()
-  findMine(@DevUserId() userId: number, @Query() query: BookingQueryDto) {
-    return this.bookingsService.findByUserId(userId, query);
+  @Roles(Role.Customer)
+  findMine(@CurrentUser() user: JwtPayload, @Query() query: BookingQueryDto) {
+    return this.bookingsService.findByUserId(user.id, query);
   }
 
   @Get(':id')
+  @Roles(Role.Customer)
   findOne(
-    @DevUserId() userId: number,
+    @CurrentUser() user: JwtPayload,
     @Param('id', ParseIntPipe) id: number,
   ) {
-    return this.bookingsService.findById(id, userId);
+    return this.bookingsService.findById(id, user.id);
   }
 }

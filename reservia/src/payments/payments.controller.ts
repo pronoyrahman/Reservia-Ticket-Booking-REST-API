@@ -5,10 +5,11 @@ import {
   Param,
   ParseIntPipe,
   Post,
-  UseGuards,
 } from '@nestjs/common';
-import { DevUserId } from '../common/dev-support/dev-user.decorator.js';
-import { DevUserGuard } from '../common/dev-support/dev-user.guard.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { Role } from '../common/enums/role.enum.js';
+import type { JwtPayload } from '../auth/jwt.strategy.js';
 import { MockWebhookDto } from './dtos/mock-webhook.dto.js';
 import { PaymentsService } from './payments.service.js';
 
@@ -17,7 +18,7 @@ export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
   @Post('webhook/mock')
-  @UseGuards(DevUserGuard)
+  @Roles(Role.Admin)
   handleMockWebhook(@Body() dto: MockWebhookDto) {
     return this.paymentsService.handleMockWebhook(
       dto.payment_id,
@@ -27,20 +28,20 @@ export class PaymentsController {
   }
 
   @Post(':bookingId/initiate')
-  @UseGuards(DevUserGuard)
+  @Roles(Role.Customer)
   initiate(
     @Param('bookingId', ParseIntPipe) bookingId: number,
-    @DevUserId() userId: number,
+    @CurrentUser() user: JwtPayload,
   ) {
-    return this.paymentsService.initiate(bookingId, userId);
+    return this.paymentsService.initiate(bookingId, user.id);
   }
 
   @Get(':id')
-  @UseGuards(DevUserGuard)
+  @Roles(Role.Customer)
   findOne(
     @Param('id', ParseIntPipe) id: number,
-    @DevUserId() userId: number,
+    @CurrentUser() user: JwtPayload,
   ) {
-    return this.paymentsService.findById(id, userId);
+    return this.paymentsService.findById(id, user.id);
   }
 }
