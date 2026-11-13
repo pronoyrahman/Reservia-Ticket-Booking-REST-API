@@ -172,7 +172,9 @@ export class ResourcesService {
   ): Promise<string> {
     const oldResource = await this.getOwnedResource(id, user);
     this.checkDates(resource.startsAt, resource.endsAt);
-    const location = await this.locationsService.getLocationById(
+    this.checkNewStart(oldResource, resource.startsAt);
+    const location = await this.getLocationForUpdate(
+      oldResource,
       resource.locationId,
     );
 
@@ -195,13 +197,14 @@ export class ResourcesService {
       resource.startsAt ?? oldResource.startsAt,
       resource.endsAt ?? oldResource.endsAt,
     );
+    this.checkNewStart(oldResource, resource.startsAt);
+    const location = await this.getLocationForUpdate(
+      oldResource,
+      resource.locationId,
+    );
 
     this.resourcesRepo.merge(oldResource, resource);
-    if (resource.locationId) {
-      oldResource.location = await this.locationsService.getLocationById(
-        resource.locationId,
-      );
-    }
+    oldResource.location = location;
     await this.resourcesRepo.save(oldResource);
     return `Resource updated with id ${id}`;
   }
@@ -231,6 +234,33 @@ export class ResourcesService {
       throw new ForbiddenException('You can only change your own resources');
     }
     return resource;
+  }
+
+  private checkNewStart(oldResource: Resources, startsAt?: Date): void {
+    if (!startsAt) {
+      return;
+    }
+    const changed =
+      startsAt.getTime() !== new Date(oldResource.startsAt).getTime();
+    if (changed && startsAt <= new Date()) {
+      throw new BadRequestException('startsAt must be in the future');
+    }
+  }
+
+  private async getLocationForUpdate(
+    oldResource: Resources,
+    locationId?: number,
+  ): Promise<Locations> {
+    if (!locationId || locationId === oldResource.location.id) {
+      return oldResource.location;
+    }
+    const location = await this.locationsService.getLocationById(locationId);
+    if (!location.isActive) {
+      throw new ConflictException(
+        `Location with id ${location.id} is not active`,
+      );
+    }
+    return location;
   }
 
   private checkDates(startsAt: Date, endsAt: Date): void {
