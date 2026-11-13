@@ -13,6 +13,11 @@ import { Users } from './entities/users.entity.js';
 import { CreateUserDto } from './dtos/create-user.dto.js';
 import { UpdateUserDto } from './dtos/update-user.dto.js';
 import { GetUsersQueryDto } from './dtos/get-users-query.dto.js';
+import { ReplaceUserDto } from './dtos/replace-user.dto.js';
+import { Locations } from '../locations/entities/locations.entity.js';
+import { Resources } from '../resources/entities/resources.entity.js';
+import { SeatHolds } from '../holds/entities/seat-holds.entity.js';
+import { Bookings } from '../bookings/entities/bookings.entity.js';
 import { Role } from '../common/enums/role.enum.js';
 
 @Injectable()
@@ -126,14 +131,21 @@ export class UsersService implements OnModuleInit {
     });
   }
 
-  async replaceUser(id: number, user: UpdateUserDto): Promise<Users> {
+    async replaceUser(id: number, user: ReplaceUserDto): Promise<Users> {
     return await this.updateUser(id, user);
   }
 
   async updateUser(id: number, user: UpdateUserDto): Promise<Users> {
-    await this.getUserById(id);
+    const usr = await this.getUserById(id);
     if (user.email) {
       await this.checkEmailFree(user.email, id);
+    }
+
+
+    if (user.role && user.role !== usr.role && (await this.isUserInUse(id))) {
+      throw new ConflictException(
+        `User with id ${id} owns locations, resources, holds or bookings, so the role cannot be changed; set isActive to false instead`,
+      );
     }
 
     const { password, ...rest } = user;
@@ -154,6 +166,15 @@ export class UsersService implements OnModuleInit {
   }
 
   async deleteUser(id: number): Promise<string> {
+    await this.getUserById(id);
+
+    // BR-21: a user who owns records cannot be deleted
+    if (await this.isUserInUse(id)) {
+      throw new ConflictException(
+        `User with id ${id} owns locations, resources, holds or bookings, so it cannot be deleted; set isActive to false instead`,
+      );
+    }
+
     const res = (await this.usersRepo.delete(id)).affected;
     if (res != null && res > 0) {
       return `User deleted with id ${id}`;
@@ -162,5 +183,20 @@ export class UsersService implements OnModuleInit {
     }
   }
 
-  
+  // true when the user owns a location, resource, hold or booking
+  private async isUserInUse(id: number): Promise<boolean> {
+    const manager = this.usersRepo.manager;
+    return (
+      (await manager.exists(Locations, {
+        where: { createdBy: { id: id } },
+        withDeleted: true,
+      })) ||
+      (await manager.exists(Resources, {
+        where: { organizer: { id: id } },
+        withDeleted: true,
+      })) ||
+      (await manager.exists(SeatHolds, { where: { user: { id: id } } })) ||
+      (await manager.exists(Bookings, { where: { user: { id: id } } }))
+    );
+  }
 }
