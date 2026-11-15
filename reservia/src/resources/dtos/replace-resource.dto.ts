@@ -1,4 +1,4 @@
-import { OmitType } from '@nestjs/mapped-types';
+import { OmitType } from '@nestjs/swagger';
 import { CreateResourceDto } from './create-resource.dto.js';
 
 export class ReplaceResourceDto extends OmitType(CreateResourceDto, [
