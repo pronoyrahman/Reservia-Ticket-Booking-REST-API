@@ -6,13 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import {
-  DataSource,
-  FindOptionsWhere,
-  In,
-  MoreThan,
-  Repository,
-} from 'typeorm';
+import { DataSource, FindOptionsWhere, In, MoreThan, Repository } from 'typeorm';
 import { SeatHolds } from './entities/seat-holds.entity.js';
 import { CreateHoldDto } from './dtos/create-hold.dto.js';
 import { HoldQueryDto } from './dtos/hold-query.dto.js';
@@ -39,8 +33,7 @@ export class HoldsService {
     await queryRunner.startTransaction();
 
     try {
-      const user = await queryRunner.manager.findOne(Users, {
-        where: { id: userId },
+      const user = await queryRunner.manager.findOne(Users, {where: { id: userId },
         lock: { mode: 'pessimistic_write' },
       });
       if (!user) 
@@ -125,9 +118,7 @@ export class HoldsService {
         this.configService.get('HOLD_DURATION_MINUTES') ?? 15,
       );
       const newHold = queryRunner.manager.create(SeatHolds, {
-        user: { id: userId },
-        seat: { id: seat.id },
-        status: HoldStatus.Active,
+        user: { id: userId },seat: { id: seat.id },status: HoldStatus.Active,
         expiresAt: new Date(Date.now() + minutes * 60 * 1000),
       });
       const saved = await queryRunner.manager.save(newHold);
@@ -144,9 +135,7 @@ export class HoldsService {
 
   async getMyActiveHolds(userId: number) {
     const holds = await this.holdsRepo.find({
-      where: {
-        user: { id: userId },
-        status: HoldStatus.Active,
+      where: {user: { id: userId },status: HoldStatus.Active,
         expiresAt: MoreThan(new Date()),
       },
       relations: { seat: { resource: true } },
@@ -200,15 +189,10 @@ export class HoldsService {
     const hold = await this.findHold(id);
     this.checkOwner(hold, user);
 
-    if (hold.bookingId) {
-      throw new ConflictException(
-        'This hold belongs to a booking; cancel or delete the booking instead',
-      );
+    if (hold.bookingId){
+      throw new ConflictException('This hold belongs to a booking; cancel or delete the booking instead');
     }
-    if (
-      hold.status !== HoldStatus.Active ||
-      new Date(hold.expiresAt) <= new Date()
-    ) {
+    if (hold.status !== HoldStatus.Active ||new Date(hold.expiresAt) <= new Date()) {
       throw new ConflictException('Only an active hold can be released');
     }
 
@@ -217,7 +201,7 @@ export class HoldsService {
     return `Hold with id ${id} released`;
   }
 
-  private async findHold(id: number): Promise<SeatHolds> {
+  private async findHold(id: number):Promise<SeatHolds> {
     const hold = await this.holdsRepo.findOne({
       where: { id: id },
       relations: { user: true, seat: { resource: true } },
@@ -235,10 +219,7 @@ export class HoldsService {
   }
 
   private remainingSeconds(expiresAt: Date): number {
-    return Math.max(
-      0,
-      Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000),
-    );
+    return Math.max( 0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000) );
   }
 
   

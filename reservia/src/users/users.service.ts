@@ -124,19 +124,11 @@ export class UsersService implements OnModuleInit {
 
   }
 
-  async replaceUser(
-    id: number,
-    user: ReplaceUserDto,
-    currentUserId: number,
-  ): Promise<Users> {
+  async replaceUser(id: number,user: ReplaceUserDto,currentUserId: number): Promise<Users> {
     return await this.updateUser(id, user, currentUserId);
   }
 
-  async updateUser(
-    id: number,
-    user: UpdateUserDto,
-    currentUserId: number,
-  ): Promise<Users> {
+  async updateUser(id: number,user: UpdateUserDto,currentUserId: number): Promise<Users> {
     const usr = await this.getUserById(id);
     if (user.email) {
       await this.checkEmailFree(user.email, id);
@@ -184,7 +176,8 @@ export class UsersService implements OnModuleInit {
     }
 
 
-    if (await this.isUserInUse(id)) {
+    if (await this.isUserInUse(id)) 
+    {
       throw new ConflictException(
         `User with id ${id} owns locations, resources, holds or bookings, so it cannot be deleted; set isActive to false instead`,
       );
@@ -199,7 +192,7 @@ export class UsersService implements OnModuleInit {
   }
 
   private async isUserInUse(id: number): Promise<boolean> {
-    const manager = this.usersRepo.manager;
+    const manager = this.usersRepo.manager; //TypeORM entity manager jeta diye multiple database op kora jay
     return (
       (await manager.exists(Locations, {
         where: { createdBy: { id: id } },
@@ -213,4 +206,6 @@ export class UsersService implements OnModuleInit {
       (await manager.exists(Bookings, { where: { user: { id: id } } }))
     );
   }
+
+  
 }

@@ -5,7 +5,6 @@ import { MailService } from './mail.service.js';
 
 @Module({
   imports: [
-    // Mailtrap sandbox settings from .env (README §11)
     MailerModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({

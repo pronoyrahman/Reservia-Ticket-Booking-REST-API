@@ -14,10 +14,7 @@ export type JwtPayload = {
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(
-    configService: ConfigService,
-    private readonly usersService: UsersService,
-  ) {
+  constructor(configService: ConfigService,private readonly usersService: UsersService,){
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
@@ -33,10 +30,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     } catch {
       throw new UnauthorizedException('This account no longer exists');
     }
-    if (!user.isActive) {
+    if (!user.isActive) 
+    {
       throw new UnauthorizedException('This account is deactivated');
     }
-
     return {
       id: user.id,
       email: user.email,

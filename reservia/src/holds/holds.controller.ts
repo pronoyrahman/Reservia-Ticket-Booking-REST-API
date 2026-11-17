@@ -60,4 +60,5 @@ export class HoldsController {
   ): Promise<string> {
     return await this.holdsService.releaseHold(id, user);
   }
+  
 }

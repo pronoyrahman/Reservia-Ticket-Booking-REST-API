@@ -6,7 +6,7 @@ import { HoldStatus } from '../../common/enums/hold-status.enum.js';
 
 export class HoldQueryDto extends PaginationQueryDto {
   @IsOptional()
-  @IsEnum(HoldStatus, {
+  @IsEnum(HoldStatus,{
     message: 'status must be active, completed, expired or cancelled',
   })
   status?: HoldStatus;

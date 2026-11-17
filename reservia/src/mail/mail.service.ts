@@ -21,7 +21,6 @@ export class MailService {
     private readonly configService: ConfigService,
   ) {}
 
-  // sent after the payment transaction is committed
   async sendBookingConfirmation(mail: BookingMail): Promise<void> {
     const startsAt = new Date(mail.startsAt).toUTCString();
     const subject = `Reservia booking #${mail.bookingId} confirmed`;
@@ -41,7 +40,6 @@ export class MailService {
     await this.send(mail.to, subject, text, html);
   }
 
-  // sent after the cancellation transaction is committed
   async sendCancellationNotice(
     mail: BookingMail & { refunded: boolean },
   ): Promise<void> {
@@ -67,7 +65,6 @@ export class MailService {
     await this.send(mail.to, subject, text, html);
   }
 
-  // for Pronoy's register (optional): welcome email
   async sendWelcome(to: string, name: string): Promise<void> {
     const subject = 'Welcome to Reservia';
     const text = `Hello ${name},\n\nYour Reservia account is ready. You can now browse events, hold seats and book tickets.\n\nReservia`;
@@ -75,7 +72,6 @@ export class MailService {
     await this.send(to, subject, text, html);
   }
 
-  // a failed email is logged and never fails the request
   private async send(
     to: string,
     subject: string,

@@ -33,16 +33,16 @@ export class AuthController {
     return await this.authService.login(loginDto);
   }
 
+  
   @Get('me')
   async getProfile(@CurrentUser() user: JwtPayload): Promise<Users> {
     return await this.authService.getProfile(user.id);
   }
 
   @Patch('change-password')
-  async changePassword(
-    @CurrentUser() user: JwtPayload,
+  async changePassword(@CurrentUser() user: JwtPayload,
     @Body() passwords: ChangePasswordDto,
-  ): Promise<string> {
+  ):Promise<string>{
     return await this.authService.changePassword(user.id, passwords);
   }
 }

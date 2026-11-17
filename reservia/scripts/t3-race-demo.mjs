@@ -1,6 +1,5 @@
 
-// T3 rollback/race demo: two customers try to hold the same seat at the same moment.
-// Usage: node scripts/t3-race-demo.mjs <seatId>
+
 const baseUrl = process.env.BASE_URL ?? 'http://localhost:3000';
 const seatId = Number(process.argv[2]);
 if (!seatId) {

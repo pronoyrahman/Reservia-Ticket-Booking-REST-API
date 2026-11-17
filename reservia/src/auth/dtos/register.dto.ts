@@ -1,12 +1,4 @@
-import {
-  IsEmail,
-  IsMobilePhone,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  Matches,
-  MaxLength,
-  MinLength,
+import {IsEmail,IsMobilePhone,IsNotEmpty,IsOptional,IsString,Matches,MaxLength,MinLength,
 } from 'class-validator';
 
 export class RegisterDto {
@@ -33,4 +25,5 @@ export class RegisterDto {
   @IsOptional()
   @IsMobilePhone('bn-BD')
   phoneNumber?: string;
+  
 }
