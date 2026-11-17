@@ -9,7 +9,7 @@ import {
 } from 'class-validator';
 
 export class CreateBookingDto {
-  // resourceId and totalAmount are set by the server (BR-07)
+
   @IsArray()
   @ArrayMinSize(1)
   @ArrayMaxSize(20)

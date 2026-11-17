@@ -15,13 +15,14 @@ import type { Tickets } from '../../tickets/entities/tickets.entity.js';
 import type { Payments } from '../../payments/entities/payments.entity.js';
 import { BookingStatus } from '../../common/enums/booking-status.enum.js';
 
+
+
 @Entity('bookings')
 @Check('"total_amount" >= 0')
 export class Bookings {
   @PrimaryGeneratedColumn()
   id: number;
 
-  // the customer, always taken from the token
   @ManyToOne('Users', {
     nullable: false,
     onDelete: 'RESTRICT',
@@ -31,7 +32,7 @@ export class Bookings {
   })
   user: Users;
 
-  // set by the server from the holds' seats (BR-07)
+
   @ManyToOne('Resources', {
     nullable: false,
     onDelete: 'RESTRICT',
@@ -41,7 +42,6 @@ export class Bookings {
   })
   resource: Resources;
 
-  // number of seats x price_per_ticket, fixed at creation (BR-07)
   @Column({
     name: 'total_amount',
     type: 'decimal',
@@ -50,6 +50,7 @@ export class Bookings {
     nullable: false,
   })
   totalAmount: number;
+
 
   @Column({
     name: 'status',
@@ -71,6 +72,7 @@ export class Bookings {
     type: 'timestamptz',
   })
   createdAt: Date;
+
 
   @UpdateDateColumn({
     name: 'updated_at',

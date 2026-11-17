@@ -9,6 +9,5 @@ import { MailModule } from '../mail/mail.module.js';
   imports: [TypeOrmModule.forFeature([Payments]), MailModule],
   controllers: [PaymentsController],
   providers: [PaymentsService],
-  exports: [PaymentsService, TypeOrmModule],
-})
+  exports: [PaymentsService, TypeOrmModule],})
 export class PaymentsModule {}

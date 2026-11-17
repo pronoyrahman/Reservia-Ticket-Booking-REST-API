@@ -14,7 +14,6 @@ import type { Seats } from '../../seats/entities/seats.entity.js';
 import { TicketStatus } from '../../common/enums/ticket-status.enum.js';
 
 @Entity('tickets')
-// a seat has at most one valid ticket; a cancelled ticket frees the seat (D6)
 @Index('uq_valid_ticket_per_seat', ['seat'], {
   unique: true,
   where: `"status" IN ('issued', 'used')`,
@@ -42,7 +41,6 @@ export class Tickets {
   })
   seat: Seats;
 
-  // e.g. RSV-7K3Q-9XPA
   @Column({
     name: 'ticket_number',
     type: 'varchar',
@@ -52,7 +50,6 @@ export class Tickets {
   })
   ticketNumber: string;
 
-  // the price actually paid
   @Column({
     name: 'price',
     type: 'decimal',
@@ -71,7 +68,6 @@ export class Tickets {
   })
   status: TicketStatus;
 
-  // set when the ticket is checked in (BR-12)
   @Column({
     name: 'used_at',
     type: 'timestamptz',
@@ -87,7 +83,6 @@ export class Tickets {
 
   @UpdateDateColumn({
     name: 'updated_at',
-    type: 'timestamptz',
-  })
+    type: 'timestamptz',})
   updatedAt: Date;
 }
