@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import {BadRequestException,Injectable,UnauthorizedException,} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service.js';
@@ -16,8 +12,7 @@ import { JwtPayload } from './jwt.strategy.js';
 
 @Injectable()
 export class AuthService {
-  constructor(
-    private readonly usersService: UsersService,
+  constructor( private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly mailService: MailService,
   ) {}
@@ -31,7 +26,6 @@ export class AuthService {
       role: Role.Customer,
     });
 
-    // welcome email is sent in the background, so register does not wait for it
     void this.mailService.sendWelcome(saved.email, saved.name);
     return saved;
   }
@@ -49,14 +43,14 @@ export class AuthService {
       user.passwordHash,
     );
     if (!passMatch) {
-      throw new UnauthorizedException('Invalid email or password');
+      throw new UnauthorizedException('Invalid email or pass');
     }
 
     if (!user.isActive) {
       throw new UnauthorizedException('This account is deactivated');
     }
 
-    const payloads: JwtPayload = {
+    const payloads: JwtPayload ={
       id: user.id,
       email: user.email,
       role: user.role,
@@ -69,10 +63,8 @@ export class AuthService {
     return await this.usersService.getUserById(id);
   }
 
-  async changePassword(
-    id: number,
-    passwords: ChangePasswordDto,
-  ): Promise<string> {
+  async changePassword(id: number,passwords: ChangePasswordDto,):Promise<string>
+  {
     const usr = await this.usersService.getUserById(id);
     const user = await this.usersService.getUserByEmailWithPassword(usr.email);
     if (!user) {
@@ -99,4 +91,6 @@ export class AuthService {
     );
     return 'Password changed successfully';
   }
+
+  
 }

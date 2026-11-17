@@ -27,9 +27,7 @@ export class SeatHolds {
     nullable: false,
     onDelete: 'RESTRICT',
   })
-  @JoinColumn({
-    name: 'user_id',
-  })
+  @JoinColumn({name: 'user_id',})
   user: Users;
 
   @ManyToOne('Seats', {
@@ -65,22 +63,12 @@ export class SeatHolds {
   })
   status: HoldStatus;
 
-  @Column({
-    name: 'expires_at',
-    type: 'timestamptz',
-    nullable: false,
-  })
+  @Column({name:'expires_at', type: 'timestamptz', nullable:false,})
   expiresAt: Date;
 
-  @CreateDateColumn({
-    name: 'created_at',
-    type: 'timestamptz',
-  })
+  @CreateDateColumn({name: 'created_at',type:'timestamptz',})
   createdAt: Date;
 
-  @UpdateDateColumn({
-    name: 'updated_at',
-    type: 'timestamptz',
-  })
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz',})
   updatedAt: Date;
 }

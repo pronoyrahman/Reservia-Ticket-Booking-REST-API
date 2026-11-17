@@ -10,4 +10,5 @@ import { SeatHolds } from './entities/seat-holds.entity.js';
   providers: [HoldsService],
   exports: [HoldsService, TypeOrmModule],
 })
+
 export class HoldsModule {}

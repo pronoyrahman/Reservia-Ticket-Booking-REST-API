@@ -65,4 +65,5 @@ export class UsersController {
   ): Promise<string> {
     return await this.usersService.deleteUser(id, currentUser.id);
   }
+  
 }

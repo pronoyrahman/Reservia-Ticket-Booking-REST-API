@@ -40,7 +40,7 @@ export class PaymentsService {
     private readonly mailService: MailService,
   ) {}
 
-  // README §6.1: payments + tickets + bookings + seat_holds in one transaction
+
   async createPayment(
     payment: CreatePaymentDto,
     user: JwtPayload,
