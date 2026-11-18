@@ -1,3 +1,4 @@
+
 import {
   Body,
   Controller,
@@ -21,6 +22,7 @@ import { AuditInfo } from '../audit/audit-context.decorator.js';
 import type { AuditContext } from '../audit/audit-context.decorator.js';
 import type { JwtPayload } from '../auth/jwt.strategy.js';
 
+
 @Controller('bookings')
 export class BookingsController {
   constructor(private readonly bookingsService: BookingsService) {}
@@ -34,6 +36,7 @@ export class BookingsController {
     return await this.bookingsService.createBooking(booking, user);
   }
 
+  
   @Get('me')
   @Roles(Role.Customer)
   async getMyBookings(

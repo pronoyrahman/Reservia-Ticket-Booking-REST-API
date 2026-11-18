@@ -1,3 +1,4 @@
+
 import { Type } from 'class-transformer';
 import { IsBoolean, IsEnum, IsInt, IsOptional, Min } from 'class-validator';
 import { PaymentMethod } from '../../common/enums/payment-method.enum.js';
@@ -13,7 +14,6 @@ export class CreatePaymentDto {
   })
   paymentMethod: PaymentMethod;
 
-  // BR-13: mock gateway failure, accepted only when NODE_ENV=development
   @IsOptional()
   @IsBoolean()
   simulateFailure?: boolean;

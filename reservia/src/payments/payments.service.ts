@@ -58,7 +58,6 @@ export class PaymentsService {
     await queryRunner.startTransaction();
 
     try {
-      // 1. lock the booking (lock order: bookings -> seat_holds -> payments -> tickets)
       const booking = await queryRunner.manager
         .createQueryBuilder(Bookings, 'booking')
         .innerJoinAndSelect('booking.user', 'user')
@@ -73,7 +72,6 @@ export class PaymentsService {
         );
       }
 
-      // 2. BR-10: own booking, still pending
       if (booking.user.id !== user.id) {
         throw new ForbiddenException('You can only pay for your own bookings');
       }
@@ -83,7 +81,6 @@ export class PaymentsService {
         );
       }
 
-      // 3. lock the booking's holds
       const holds = await queryRunner.manager
         .createQueryBuilder(SeatHolds, 'hold')
         .innerJoinAndSelect('hold.seat', 'seat')
@@ -92,7 +89,6 @@ export class PaymentsService {
         .setLock('pessimistic_write', undefined, ['hold'])
         .getMany();
 
-      // BR-08: an expired hold expires the booking; commit that, then 409
       const now = new Date();
       const hasExpiredHold =
         holds.length === 0 ||
@@ -116,7 +112,6 @@ export class PaymentsService {
         );
       }
 
-      // BR-13: mock gateway failure -> failed payment row, booking stays pending
       if (payment.simulateFailure) {
         const failedPayment = queryRunner.manager.create(Payments, {
           booking: { id: booking.id },
@@ -131,7 +126,6 @@ export class PaymentsService {
         return await this.findPayment(savedFailed.id);
       }
 
-      // 4. the payment, completed by the mock gateway
       const newPayment = queryRunner.manager.create(Payments, {
         booking: { id: booking.id },
         amount: booking.totalAmount,
@@ -157,7 +151,6 @@ export class PaymentsService {
       );
       await queryRunner.manager.save(tickets);
 
-      // rollback demo (README §6.1): fail after the ticket insert
       if (
         isDevelopment &&
         String(this.configService.get('DEMO_FAIL_AFTER_TICKET_INSERT')) ===
@@ -168,7 +161,6 @@ export class PaymentsService {
         );
       }
 
-      // 6. booking confirmed, holds completed
       await queryRunner.manager.update(Bookings, booking.id, {
         status: BookingStatus.Confirmed,
       });
@@ -178,10 +170,8 @@ export class PaymentsService {
         { status: HoldStatus.Completed },
       );
 
-      // 7. commit
       await queryRunner.commitTransaction();
 
-      // email only after a successful commit
       await this.mailService.sendBookingConfirmation({
         to: booking.user.email,
         name: booking.user.name,
@@ -262,7 +252,6 @@ export class PaymentsService {
     return payment;
   }
 
-  // e.g. RSV-7K3Q-9XPA (no 0/O/1/I to avoid misreading at the gate)
   private newTicketNumber(): string {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let code = '';

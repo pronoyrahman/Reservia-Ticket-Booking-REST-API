@@ -1,8 +1,4 @@
-import {
-  ConflictException,
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
+import { ConflictException, ForbiddenException, Injectable, NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindOptionsWhere, Repository } from 'typeorm';
@@ -55,7 +51,6 @@ export class TicketsService {
     };
   }
 
-  // customer: own ticket, organizer: ticket for own resource, admin: any
   async getTicketByNumber(
     ticketNumber: string,
     user: JwtPayload,
@@ -87,7 +82,6 @@ export class TicketsService {
     return ticket;
   }
 
-  // BR-12: check a ticket in at the gate
   async useTicket(
     id: number,
     user: JwtPayload,
@@ -110,7 +104,6 @@ export class TicketsService {
       );
     }
 
-    // one atomic update: two scans at the same moment give one 200 and one 409
     const usedAt = new Date();
     const result = await this.ticketsRepo
       .createQueryBuilder()
