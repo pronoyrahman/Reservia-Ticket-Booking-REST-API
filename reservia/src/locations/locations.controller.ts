@@ -1,15 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  ParseIntPipe,
-  Patch,
-  Post,
-  Put,
-  Query,
-} from '@nestjs/common';
+import {Body,Controller,Delete,Get,Param,ParseIntPipe,Patch,Post,Put,Query,} from '@nestjs/common';
 import { LocationsService } from './locations.service.js';
 import { CreateLocationDto } from './dtos/create-location.dto.js';
 import { UpdateLocationDto } from './dtos/update-location.dto.js';
@@ -27,10 +16,7 @@ export class LocationsController {
 
   @Post('create-location')
   @Roles(Role.Admin, Role.Organizer)
-  async createLocation(
-    @Body() location: CreateLocationDto,
-    @CurrentUser() user: JwtPayload,
-  ): Promise<Locations> {
+  async createLocation(@Body() location: CreateLocationDto,@CurrentUser() user: JwtPayload,): Promise<Locations> {
     return await this.locationsService.createLocation(location, user);
   }
 
@@ -42,47 +28,31 @@ export class LocationsController {
 
   @Get('my')
   @Roles(Role.Admin, Role.Organizer)
-  async getMyLocations(
-    @Query() query: LocationQueryDto,
-    @CurrentUser() user: JwtPayload,
-  ) {
+  async getMyLocations(@Query() query: LocationQueryDto,@CurrentUser() user: JwtPayload,) {
     return await this.locationsService.getAllLocations(query, user.id);
   }
 
   @Public()
   @Get(':id')
-  async getLocationById(
-    @Param('id', ParseIntPipe) id: number,
-  ): Promise<Locations> {
+  async getLocationById(@Param('id', ParseIntPipe) id: number,): Promise<Locations> {
     return await this.locationsService.getLocationById(id);
   }
 
   @Put('updateLocationFully/:id')
   @Roles(Role.Admin, Role.Organizer)
-  async updateLocationFully(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() location: CreateLocationDto,
-    @CurrentUser() user: JwtPayload,
-  ): Promise<string> {
+  async updateLocationFully(@Param('id', ParseIntPipe) id: number,@Body() location: CreateLocationDto,@CurrentUser() user: JwtPayload,): Promise<string> {
     return await this.locationsService.replaceLocation(id, location, user);
   }
 
   @Patch('updateLocationPartially/:id')
   @Roles(Role.Admin, Role.Organizer)
-  async updateLocationPartially(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() location: UpdateLocationDto,
-    @CurrentUser() user: JwtPayload,
-  ): Promise<string> {
+  async updateLocationPartially(@Param('id', ParseIntPipe) id: number,@Body() location: UpdateLocationDto,@CurrentUser() user: JwtPayload,): Promise<string> {
     return await this.locationsService.updateLocation(id, location, user);
   }
 
   @Delete(':id')
   @Roles(Role.Admin, Role.Organizer)
-  async deleteLocation(
-    @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() user: JwtPayload,
-  ): Promise<string> {
+  async deleteLocation(@Param('id', ParseIntPipe) id: number,@CurrentUser() user: JwtPayload,): Promise<string> {
     return await this.locationsService.deleteLocation(id, user);
   }
 }

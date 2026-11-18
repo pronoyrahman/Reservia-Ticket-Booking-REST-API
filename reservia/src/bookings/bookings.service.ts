@@ -1,3 +1,4 @@
+
 import {
   BadRequestException,
   ConflictException,
@@ -34,7 +35,6 @@ import { AuditService } from '../audit/audit.service.js';
 import type { AuditContext } from '../audit/audit-context.decorator.js';
 import type { JwtPayload } from '../auth/jwt.strategy.js';
 
-// a booking with the holds it groups (seat_holds has no relation to bookings)
 export type BookingDetails = Bookings & { holds: SeatHolds[] };
 
 @Injectable()
@@ -48,7 +48,6 @@ export class BookingsService {
     private readonly auditService: AuditService,
   ) {}
 
-  // T4: seat_holds + bookings in one transaction
   async createBooking(
     booking: CreateBookingDto,
     user: JwtPayload,
@@ -58,7 +57,6 @@ export class BookingsService {
     await queryRunner.startTransaction();
 
     try {
-      // 1. lock the listed holds
       const holds = await queryRunner.manager
         .createQueryBuilder(SeatHolds, 'hold')
         .innerJoinAndSelect('hold.user', 'user')
@@ -76,7 +74,6 @@ export class BookingsService {
         }
       }
 
-      // 2. BR-06: own, active, unexpired, not linked, one resource
       for (const hold of holds) {
         if (hold.user.id !== user.id) {
           throw new ForbiddenException(
@@ -116,7 +113,6 @@ export class BookingsService {
         );
       }
 
-      // 3. BR-07: resource and total come from the server
       const priceInCents = Math.round(Number(resource.pricePerTicket) * 100);
       const newBooking = queryRunner.manager.create(Bookings, {
         user: { id: user.id },
@@ -126,7 +122,6 @@ export class BookingsService {
       });
       const saved = await queryRunner.manager.save(newBooking);
 
-      // 4. link the holds to the booking
       await queryRunner.manager.update(
         SeatHolds,
         { id: In(booking.holdIds) },
@@ -162,7 +157,6 @@ export class BookingsService {
     return await this.findPage(where, query);
   }
 
-  // admin: all bookings, organizer: bookings of own resources
   async getAllBookings(
     query: BookingQueryDto,
     user: JwtPayload,
@@ -185,7 +179,6 @@ export class BookingsService {
     return await this.findPage(where, query);
   }
 
-  // customer: own booking, organizer: booking of own resource, admin: any
   async getBookingById(id: number, user: JwtPayload): Promise<BookingDetails> {
     const booking = await this.findBookingDetails(id);
     const isOwner = booking.user.id === user.id;
@@ -200,7 +193,6 @@ export class BookingsService {
     return booking;
   }
 
-  // T5: bookings + seat_holds + payments + tickets in one transaction
   async cancelBooking(
     id: number,
     user: JwtPayload,
@@ -215,7 +207,6 @@ export class BookingsService {
     await queryRunner.startTransaction();
 
     try {
-      // 1. lock the booking
       const booking = await this.lockBooking(queryRunner, id);
       this.checkOwner(booking, user);
       if (booking.status === BookingStatus.Cancelled) {
@@ -234,14 +225,12 @@ export class BookingsService {
       let cancelledTickets: Tickets[] = [];
 
       if (booking.status === BookingStatus.Pending) {
-        // a pending booking can be cancelled at any time; its holds are released
         await queryRunner.manager.update(
           SeatHolds,
           { bookingId: id, status: HoldStatus.Active },
           { status: HoldStatus.Cancelled },
         );
       } else {
-        // 2. BR-09: confirmed booking only until the cut-off
         const hoursLeft =
           (new Date(booking.resource.startsAt).getTime() - Date.now()) /
           3_600_000;
@@ -251,14 +240,12 @@ export class BookingsService {
           );
         }
 
-        // 3. holds -> cancelled
         await queryRunner.manager.update(
           SeatHolds,
           { bookingId: id, status: HoldStatus.Completed },
           { status: HoldStatus.Cancelled },
         );
 
-        // 4. payment -> refunded (mock, full refund)
         refundedPayment = await queryRunner.manager
           .createQueryBuilder(Payments, 'payment')
           .where('payment.booking_id = :id', { id: id })
@@ -288,7 +275,6 @@ export class BookingsService {
           );
         }
 
-        // 5. tickets -> cancelled; a used ticket blocks the cancellation
         const tickets = await queryRunner.manager
           .createQueryBuilder(Tickets, 'ticket')
           .where('ticket.booking_id = :id', { id: id })
@@ -312,7 +298,6 @@ export class BookingsService {
           .execute();
       }
 
-      // 6. booking -> cancelled
       await queryRunner.manager.update(Bookings, id, {
         status: BookingStatus.Cancelled,
       });
@@ -332,7 +317,6 @@ export class BookingsService {
         queryRunner.manager,
       );
 
-      // 7. commit, then email
       await queryRunner.commitTransaction();
 
       await this.mailService.sendCancellationNotice({
@@ -360,7 +344,6 @@ export class BookingsService {
     }
   }
 
-  // BR-09: only a pending booking can be deleted; its holds are released
   async deleteBooking(id: number, user: JwtPayload): Promise<string> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -383,7 +366,6 @@ export class BookingsService {
         );
       }
 
-      // holds -> cancelled and unlinked, then the booking row is removed
       await queryRunner.manager.update(
         SeatHolds,
         { bookingId: id, status: HoldStatus.Active },
@@ -466,7 +448,6 @@ export class BookingsService {
     return Object.assign(booking, { holds: holds });
   }
 
-  // BR-11: a pending booking whose holds have all expired is shown as expired
   private async showExpired(bookings: Bookings[]): Promise<void> {
     const pendingIds = bookings
       .filter((booking) => booking.status === BookingStatus.Pending)
@@ -510,7 +491,6 @@ export class BookingsService {
     return booking;
   }
 
-  // customer: own booking only, admin: any
   private checkOwner(booking: Bookings, user: JwtPayload): void {
     if (user.role !== Role.Admin && booking.user.id !== user.id) {
       throw new ForbiddenException('You can only change your own bookings');

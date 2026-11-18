@@ -1,9 +1,4 @@
-import {
-  CallHandler,
-  ExecutionContext,
-  Injectable,
-  NestInterceptor,
-} from '@nestjs/common';
+import {CallHandler,ExecutionContext,Injectable,NestInterceptor} from '@nestjs/common';
 import { Observable, map } from 'rxjs';
 
 export type ApiResponse = {
@@ -21,12 +16,9 @@ export class ResponseInterceptor implements NestInterceptor {
   ): Observable<ApiResponse> {
     return next.handle().pipe(
       map((result: unknown) => {
-        // service returned a message, e.g. "Location deleted with id 3"
         if (typeof result === 'string') {
           return { success: true, message: result, data: null };
         }
-
-        // paginated list: { data, meta }
         if (
           result !== null &&
           typeof result === 'object' &&
@@ -42,7 +34,6 @@ export class ResponseInterceptor implements NestInterceptor {
           };
         }
 
-        // any other object or array
         return { success: true, message: 'OK', data: result ?? null };
       }),
     );

@@ -1,10 +1,4 @@
-import {
-  Controller,
-  Get,
-  Param,
-  ParseIntPipe,
-  Patch,
-  Query,
+import { Controller, Get, Param, ParseIntPipe, Patch, Query,
 } from '@nestjs/common';
 import { TicketsService } from './tickets.service.js';
 import { TicketQueryDto } from './dtos/ticket-query.dto.js';
@@ -27,8 +21,7 @@ export class TicketsController {
     @Query() query: TicketQueryDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return await this.ticketsService.getMyTickets(query, user);
-  }
+    return await this.ticketsService.getMyTickets(query, user);}
 
   @Get('number/:ticketNumber')
   @Roles(Role.Customer, Role.Organizer, Role.Admin)
@@ -36,8 +29,7 @@ export class TicketsController {
     @Param('ticketNumber') ticketNumber: string,
     @CurrentUser() user: JwtPayload,
   ): Promise<Tickets> {
-    return await this.ticketsService.getTicketByNumber(ticketNumber, user);
-  }
+    return await this.ticketsService.getTicketByNumber(ticketNumber, user);}
 
   @Patch(':id/use')
   @Roles(Role.Organizer, Role.Admin)

@@ -1,16 +1,6 @@
 import { Type } from 'class-transformer';
-import {
-  IsBoolean,
-  IsEnum,
-  IsInt,
-  IsNotEmpty,
-  IsOptional,
-  Matches,
-  Max,
-  Min,
-} from 'class-validator';
+import {IsBoolean,IsEnum,IsInt,IsNotEmpty,IsOptional,Matches,Max,Min,} from 'class-validator';
 import { SeatStatus } from '../../common/enums/seat-status.enum.js';
-
 export class CreateSeatDto {
   @IsInt()
   @Min(1)

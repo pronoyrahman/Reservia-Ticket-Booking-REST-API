@@ -18,7 +18,6 @@ export class Payments {
   @PrimaryGeneratedColumn()
   id: number;
 
-  // a booking may have several payment attempts (no unique here)
   @ManyToOne('Bookings', (booking: Bookings) => booking.payments, {
     nullable: false,
     onDelete: 'RESTRICT',
@@ -28,7 +27,6 @@ export class Payments {
   })
   booking: Bookings;
 
-  // copied from bookings.total_amount
   @Column({
     name: 'amount',
     type: 'decimal',
@@ -46,7 +44,6 @@ export class Payments {
   })
   paymentMethod: PaymentMethod;
 
-  // mock gateway reference, e.g. MOCK-<uuid>
   @Column({
     name: 'transaction_id',
     type: 'varchar',

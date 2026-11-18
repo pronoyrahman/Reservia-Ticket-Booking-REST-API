@@ -7,11 +7,6 @@ import type { Users } from '../../users/entities/users.entity.js';
 export class Locations {
   @PrimaryGeneratedColumn()
   id: number;
-  @ManyToOne('Users', { nullable: false, onDelete: 'RESTRICT' })
-  @JoinColumn({
-    name: 'created_by',
-  })
-  createdBy: Users;
 
   @Column({
     name: 'name',
@@ -61,9 +56,6 @@ export class Locations {
   })
   isActive: boolean;
 
-  @OneToMany('Resources', (resource: Resources) => resource.location)
-  resources: Resources[];
-
   @CreateDateColumn({
     name: 'created_at',
     type: 'timestamptz',
@@ -75,9 +67,19 @@ export class Locations {
     type: 'timestamptz',
   })
   updatedAt: Date;
+  
   @DeleteDateColumn({
     name: 'deleted_at',
     type: 'timestamptz',
   })
   deletedAt: Date;
+
+  @OneToMany('Resources', (resource: Resources) => resource.location)
+  resources: Resources[];
+
+  @ManyToOne('Users', { nullable: false, onDelete: 'RESTRICT' })
+  @JoinColumn({
+    name: 'created_by',
+  })
+  createdBy: Users;
 }

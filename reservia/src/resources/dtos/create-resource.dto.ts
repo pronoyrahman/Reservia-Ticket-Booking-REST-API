@@ -1,18 +1,6 @@
 import { Type } from 'class-transformer';
-import {
-  IsBoolean,
-  IsDate,
-  IsEnum,
-  IsInt,
-  IsNotEmpty,
-  IsNumber,
-  IsOptional,
-  IsString,
-  Max,
-  MaxLength,
-  Min,
-  MinLength,
-} from 'class-validator';
+import {IsBoolean,IsDate,IsEnum,IsInt,IsNotEmpty,IsNumber,IsOptional,IsString,Max,
+  MaxLength,Min,MinLength,} from 'class-validator';
 import { ResourceType } from '../../common/enums/resource-type.enum.js';
 
 export class CreateResourceDto {
@@ -29,7 +17,7 @@ export class CreateResourceDto {
   name: string;
 
   @IsEnum(ResourceType, {
-    message: 'type must be one of: concert, movie, bus, seminar, other',
+    message: 'type must be one of these : concert, movie, bus, seminar, other',
   })
   @IsNotEmpty()
   type: ResourceType;

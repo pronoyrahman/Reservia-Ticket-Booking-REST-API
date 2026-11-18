@@ -26,13 +26,12 @@ export class PaymentsController {
     @Body() payment: CreatePaymentDto,
     @CurrentUser() user: JwtPayload,
   ): Promise<Payments> {
-    return await this.paymentsService.createPayment(payment, user);
-  }
+    return await this.paymentsService.createPayment(payment, user);}
 
   @Get()
   @Roles(Role.Admin)
   async getAllPayments(@Query() query: PaymentQueryDto) {
-    return await this.paymentsService.getAllPayments(query);
+   return await this.paymentsService.getAllPayments(query);
   }
 
   @Get(':id')

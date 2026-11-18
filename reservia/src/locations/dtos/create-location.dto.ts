@@ -1,15 +1,4 @@
-import {
-  IsBoolean,
-  IsNotEmpty,
-  IsNumber,
-  IsOptional,
-  IsString,
-  Max,
-  MaxLength,
-  Min,
-  MinLength,
-} from 'class-validator';
-
+import {IsBoolean,IsNotEmpty,IsNumber,IsOptional,IsString,Max,MaxLength,Min,MinLength,} from 'class-validator';
 export class CreateLocationDto {
   @IsString()
   @IsNotEmpty()

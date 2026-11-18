@@ -1,21 +1,7 @@
-import {
-  BadRequestException,
-  ConflictException,
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import {BadRequestException,ConflictException,ForbiddenException,Injectable,NotFoundException,} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import {
-  Between,
-  DataSource,
-  FindOptionsWhere,
-  ILike,
-  In,
-  LessThanOrEqual,
-  MoreThan,
-  MoreThanOrEqual,
-  Repository,
+import {Between,DataSource,FindOptionsWhere,ILike,In,LessThanOrEqual,MoreThan,MoreThanOrEqual,
+Repository,
 } from 'typeorm';
 import { Resources } from './entities/resources.entity.js';
 import { Seats } from '../seats/entities/seats.entity.js';
@@ -56,10 +42,7 @@ export class ResourcesService {
     private readonly dataSource: DataSource,
   ) {}
 
-  async createResource(
-    resource: CreateResourceDto,
-    user: JwtPayload,
-  ): Promise<Resources> {
+  async createResource(resource: CreateResourceDto,user: JwtPayload,): Promise<Resources> {
     if (resource.startsAt <= new Date()) {
       throw new BadRequestException('startsAt must be in the future');
     }
@@ -68,13 +51,11 @@ export class ResourcesService {
     const seatsPerRow = resource.seatsPerRow ?? 10;
     if (Math.ceil(resource.capacity / seatsPerRow) > 26) {
       throw new BadRequestException(
-        'capacity / seatsPerRow needs more than 26 rows (A-Z)',
+        'Put more seats in each row or lower the capacity.',
       );
     }
 
-    const location = await this.locationsService.getLocationById(
-      resource.locationId,
-    );
+    const location = await this.locationsService.getLocationById(resource.locationId,);
     if (!location.isActive) {
       throw new ConflictException(
         `Location with id ${location.id} is not active`,
@@ -97,9 +78,8 @@ export class ResourcesService {
       for (let i = 0; i < resource.capacity; i++) {
         const rowLetter = String.fromCharCode(65 + Math.floor(i / seatsPerRow));
         const columnNumber = (i % seatsPerRow) + 1;
-        seats.push(
-          queryRunner.manager.create(Seats, {
-            resource: savedResource,
+        seats.push(queryRunner.manager.create(Seats, 
+          {resource: savedResource,
             seatNumber: `${rowLetter}${columnNumber}`,
             rowLetter: rowLetter,
             columnNumber: columnNumber,
@@ -129,33 +109,18 @@ export class ResourcesService {
     const limit = query.limit ?? 10;
 
     const where: FindOptionsWhere<Resources> = {};
-    if (organizerId) {
-      where.organizer = { id: organizerId };
-    }
-    if (query.type) {
-      where.type = query.type;
-    }
-    if (query.search) {
-      where.name = ILike(`%${query.search}%`);
-    }
-    if (query.from && query.to) {
-      where.startsAt = Between(query.from, query.to);
-    } else if (query.from) {
-      where.startsAt = MoreThanOrEqual(query.from);
-    } else if (query.to) {
-      where.startsAt = LessThanOrEqual(query.to);
-    }
+    if (organizerId) {where.organizer = { id: organizerId };}
+    if (query.type) {where.type = query.type;}
+    if (query.search) {where.name = ILike(`%${query.search}%`);}
+    if (query.from && query.to) {where.startsAt = Between(query.from, query.to);} 
+    else if (query.from) {where.startsAt = MoreThanOrEqual(query.from);}
+     else if (query.to) {where.startsAt = LessThanOrEqual(query.to);}
     if (query.locationId || query.city) {
       const locationWhere: FindOptionsWhere<Locations> = {};
-      if (query.locationId) {
-        locationWhere.id = query.locationId;
-      }
-      if (query.city) {
-        locationWhere.city = ILike(query.city);
-      }
+      if (query.locationId) {locationWhere.id = query.locationId;}
+      if (query.city) {locationWhere.city = ILike(query.city);}
       where.location = locationWhere;
     }
-
     const [resources, total] = await this.resourcesRepo.findAndCount({
       where: where,
       relations: { location: true },
@@ -164,15 +129,7 @@ export class ResourcesService {
       take: limit,
     });
 
-    return {
-      data: resources,
-      meta: {
-        page: page,
-        limit: limit,
-        total: total,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
+    return {data: resources,meta: {page: page,limit: limit,total: total,totalPages: Math.ceil(total / limit),},};
   }
 
   async getResourceById(id: number): Promise<Resources> {
@@ -186,10 +143,7 @@ export class ResourcesService {
     return resource;
   }
 
-  async getSeatMap(
-    id: number,
-    user?: JwtPayload | null,
-  ): Promise<{
+  async getSeatMap(id: number,user?: JwtPayload | null,): Promise<{
     resource: {
       id: number;
       name: string;
@@ -213,7 +167,6 @@ export class ResourcesService {
       order: { rowLetter: 'ASC', columnNumber: 'ASC' },
     });
 
-    // BR-03: only active holds that have not expired keep a seat
     const activeHolds = await this.dataSource.getRepository(SeatHolds).find({
       where: {
         seat: { resource: { id: id } },
@@ -227,7 +180,6 @@ export class ResourcesService {
       holdBySeatId.set(hold.seat.id, hold);
     }
 
-    // BR-03: a seat with an issued or used ticket is sold
     const soldTickets = await this.dataSource.getRepository(Tickets).find({
       where: {
         seat: { resource: { id: id } },
@@ -344,7 +296,6 @@ export class ResourcesService {
   async deleteResource(id: number, user: JwtPayload): Promise<string> {
     await this.getOwnedResource(id, user);
 
-    // BR-15: a resource with bookings or active holds cannot be deleted
     const activeHolds = await this.dataSource.getRepository(SeatHolds).count({
       where: {
         seat: { resource: { id: id } },
@@ -392,8 +343,6 @@ export class ResourcesService {
     return resource;
   }
 
-  // BR-19: once a resource has pending or confirmed bookings,
-  // startsAt, endsAt, location and price cannot change
   private async checkLockedFields(
     oldResource: Resources,
     resource: UpdateResourceDto,
@@ -454,8 +403,6 @@ export class ResourcesService {
   }
 
   private checkDates(startsAt: Date, endsAt: Date): void {
-    if (endsAt <= startsAt) {
-      throw new BadRequestException('endsAt must be after startsAt');
-    }
+    if (endsAt <= startsAt) {throw new BadRequestException('endsAt must be after startsAt');}
   }
 }
