@@ -1,16 +1,4 @@
-import {
-  Check,
-  Column,
-  CreateDateColumn,
-  DeleteDateColumn,
-  Entity,
-  Index,
-  JoinColumn,
-  ManyToOne,
-  OneToMany,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from 'typeorm';
+import {Check,Column,CreateDateColumn,DeleteDateColumn,Entity,JoinColumn,ManyToOne,OneToMany,PrimaryGeneratedColumn,UpdateDateColumn,} from 'typeorm';
 import type { Locations } from '../../locations/entities/locations.entity.js';
 import type { Seats } from '../../seats/entities/seats.entity.js';
 import type { Users } from '../../users/entities/users.entity.js';
@@ -24,23 +12,6 @@ export class Resources {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Index()
-  @ManyToOne('Users', { nullable: false, onDelete: 'RESTRICT' })
-  @JoinColumn({
-    name: 'organizer_id',
-  })
-  organizer: Users;
-
-  @Index()
-  @ManyToOne('Locations', (location: Locations) => location.resources, {
-    nullable: false,
-    onDelete: 'RESTRICT',
-  })
-  @JoinColumn({
-    name: 'location_id',
-  })
-  location: Locations;
-
   @Column({
     name: 'name',
     type: 'varchar',
@@ -49,7 +20,6 @@ export class Resources {
   })
   name: string;
 
-  @Index()
   @Column({
     name: 'type',
     type: 'varchar',
@@ -58,7 +28,6 @@ export class Resources {
   })
   type: string;
 
-  @Index()
   @Column({
     name: 'starts_at',
     type: 'timestamptz',
@@ -102,8 +71,6 @@ export class Resources {
     default: true,
   })
   isAvailable: boolean;
-  @OneToMany('Seats', (seat: Seats) => seat.resource)
-  seats: Seats[];
 
   @CreateDateColumn({
     name: 'created_at',
@@ -122,4 +89,21 @@ export class Resources {
     type: 'timestamptz',
   })
   deletedAt: Date;
+
+    @ManyToOne('Users', { nullable: false, onDelete: 'RESTRICT' })
+  @JoinColumn({
+    name: 'organizer_id',
+  })
+  organizer: Users;
+
+  @ManyToOne('Locations', (location: Locations) => location.resources, {
+    nullable: false,
+    onDelete: 'RESTRICT',
+  })
+  @JoinColumn({
+    name: 'location_id',
+  })
+  location: Locations;
+    @OneToMany('Seats', (seat: Seats) => seat.resource)
+  seats: Seats[];
 }

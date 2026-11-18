@@ -1,17 +1,6 @@
-import {
-  Check,
-  Column,
-  CreateDateColumn,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-  PrimaryGeneratedColumn,
-  Unique,
-  UpdateDateColumn,
-} from 'typeorm';
+import {Check,Column,CreateDateColumn,Entity,JoinColumn,ManyToOne,PrimaryGeneratedColumn,Unique,UpdateDateColumn,} from 'typeorm';
 import type { Resources } from '../../resources/entities/resources.entity.js';
 import { SeatStatus } from '../../common/enums/seat-status.enum.js';
-
 @Entity('seats')
 @Unique(['resource', 'seatNumber'])
 @Check('"column_number" > 0')

@@ -1,16 +1,7 @@
 import { Type } from 'class-transformer';
-import {
-  IsDate,
-  IsEnum,
-  IsInt,
-  IsOptional,
-  IsString,
-  MaxLength,
-  Min,
-} from 'class-validator';
+import {IsDate,IsEnum,IsInt,IsOptional,IsString,MaxLength,Min,} from 'class-validator';
 import { PaginationQueryDto } from '../../common/dtos/pagination-query.dto.js';
 import { ResourceType } from '../../common/enums/resource-type.enum.js';
-
 export class ResourceQueryDto extends PaginationQueryDto {
   @IsInt()
   @Min(1)

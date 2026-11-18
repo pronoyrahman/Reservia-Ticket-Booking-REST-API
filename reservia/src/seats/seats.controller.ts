@@ -1,15 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  ParseIntPipe,
-  Patch,
-  Post,
-  Put,
-  Query,
-} from '@nestjs/common';
+import {Body,Controller,Delete,Get,Param,ParseIntPipe,Patch,Post,Put,Query,} from '@nestjs/common';
 import { SeatsService } from './seats.service.js';
 import { CreateSeatDto } from './dtos/create-seat.dto.js';
 import { ReplaceSeatDto } from './dtos/replace-seat.dto.js';
@@ -21,7 +10,6 @@ import { Roles } from '../common/decorators/roles.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { Role } from '../common/enums/role.enum.js';
 import type { JwtPayload } from '../auth/jwt.strategy.js';
-
 @Controller('seats')
 export class SeatsController {
   constructor(private readonly seatsService: SeatsService) {}
@@ -49,9 +37,7 @@ export class SeatsController {
 
   @Put('updateSeatFully/:id')
   @Roles(Role.Admin, Role.Organizer)
-  async updateSeatFully(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() seat: ReplaceSeatDto,
+  async updateSeatFully(@Param('id', ParseIntPipe) id: number,@Body() seat: ReplaceSeatDto,
     @CurrentUser() user: JwtPayload,
   ): Promise<string> {
     return await this.seatsService.replaceSeat(id, seat, user);
@@ -59,9 +45,7 @@ export class SeatsController {
 
   @Patch('updateSeatPartially/:id')
   @Roles(Role.Admin, Role.Organizer)
-  async updateSeatPartially(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() seat: UpdateSeatDto,
+  async updateSeatPartially(@Param('id', ParseIntPipe) id: number,@Body() seat: UpdateSeatDto,
     @CurrentUser() user: JwtPayload,
   ): Promise<string> {
     return await this.seatsService.updateSeat(id, seat, user);
@@ -69,10 +53,7 @@ export class SeatsController {
 
   @Delete(':id')
   @Roles(Role.Admin, Role.Organizer)
-  async deleteSeat(
-    @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() user: JwtPayload,
-  ): Promise<string> {
+  async deleteSeat(@Param('id', ParseIntPipe) id: number,@CurrentUser() user: JwtPayload,): Promise<string> {
     return await this.seatsService.deleteSeat(id, user);
   }
 }

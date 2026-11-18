@@ -1,6 +1,6 @@
 export enum SeatAvailability {
-  Available = 'AVAILABLE',
-  HeldByYou = 'HELD_BY_YOU',
-  Unavailable = 'UNAVAILABLE',
-  Blocked = 'BLOCKED',
+  Available = 'Available',
+  HeldByYou = 'Held by you',
+  Unavailable = 'Unavailable',
+  Blocked = 'Blocked',
 }
