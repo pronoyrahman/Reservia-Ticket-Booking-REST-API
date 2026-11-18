@@ -1,15 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  ParseIntPipe,
-  Patch,
-  Post,
-  Put,
-  Query,
-} from '@nestjs/common';
+import {Body,Controller,Delete,Get,Param,ParseIntPipe,Patch,Post,Put,Query,} from '@nestjs/common';
 import { ResourcesService } from './resources.service.js';
 import { CreateResourceDto } from './dtos/create-resource.dto.js';
 import { ReplaceResourceDto } from './dtos/replace-resource.dto.js';
@@ -28,10 +17,7 @@ export class ResourcesController {
 
   @Post('create-resource')
   @Roles(Role.Admin, Role.Organizer)
-  async createResource(
-    @Body() resource: CreateResourceDto,
-    @CurrentUser() user: JwtPayload,
-  ): Promise<Resources> {
+  async createResource(@Body() resource: CreateResourceDto,@CurrentUser() user: JwtPayload): Promise<Resources> {
     return await this.resourcesService.createResource(resource, user);
   }
 
@@ -43,18 +29,13 @@ export class ResourcesController {
 
   @Get('my')
   @Roles(Role.Admin, Role.Organizer)
-  async getMyResources(
-    @Query() query: ResourceQueryDto,
-    @CurrentUser() user: JwtPayload,
-  ) {
+  async getMyResources(@Query() query: ResourceQueryDto,@CurrentUser() user: JwtPayload,) {
     return await this.resourcesService.getAllResources(query, user.id);
   }
 
   @Public()
   @Get(':id')
-  async getResourceById(
-    @Param('id', ParseIntPipe) id: number,
-  ): Promise<Resources> {
+  async getResourceById(@Param('id', ParseIntPipe) id: number,): Promise<Resources> {
     return await this.resourcesService.getResourceById(id);
   }
     @Public()
@@ -68,30 +49,21 @@ export class ResourcesController {
 
   @Put('updateResourceFully/:id')
   @Roles(Role.Admin, Role.Organizer)
-  async updateResourceFully(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() resource: ReplaceResourceDto,
-    @CurrentUser() user: JwtPayload,
-  ): Promise<string> {
+  async updateResourceFully(@Param('id', ParseIntPipe) id: number,@Body() resource: ReplaceResourceDto,
+  @CurrentUser() user: JwtPayload): Promise<string> {
     return await this.resourcesService.replaceResource(id, resource, user);
   }
 
   @Patch('updateResourcePartially/:id')
   @Roles(Role.Admin, Role.Organizer)
-  async updateResourcePartially(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() resource: UpdateResourceDto,
-    @CurrentUser() user: JwtPayload,
-  ): Promise<string> {
+  async updateResourcePartially(@Param('id', ParseIntPipe) id: number,@Body() resource: UpdateResourceDto,
+    @CurrentUser() user: JwtPayload): Promise<string> {
     return await this.resourcesService.updateResource(id, resource, user);
   }
 
   @Delete(':id')
   @Roles(Role.Admin, Role.Organizer)
-  async deleteResource(
-    @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() user: JwtPayload,
-  ): Promise<string> {
+  async deleteResource(@Param('id', ParseIntPipe) id: number,@CurrentUser() user: JwtPayload): Promise<string> {
     return await this.resourcesService.deleteResource(id, user);
   }
 }

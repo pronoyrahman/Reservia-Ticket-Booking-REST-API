@@ -1,10 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  ConflictException,
-  ForbiddenException,
-} from '@nestjs/common';
+import {Injectable,NotFoundException,BadRequestException,ConflictException,ForbiddenException,} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindOptionsWhere, ILike, Repository } from 'typeorm';
 import { Locations } from './entities/locations.entity.js';
@@ -16,15 +10,11 @@ import { Role } from '../common/enums/role.enum.js';
 
 @Injectable()
 export class LocationsService {
-  constructor(
-    @InjectRepository(Locations)
+  constructor(@InjectRepository(Locations)
     private readonly locationsRepo: Repository<Locations>,
   ) {}
 
-  async createLocation(
-    location: CreateLocationDto,
-    user: JwtPayload,
-  ): Promise<Locations> {
+  async createLocation(location: CreateLocationDto,user: JwtPayload): Promise<Locations> {
     await this.checkDuplicate(location.name, location.address);
     try {
       const locationEntity = this.locationsRepo.create({
@@ -37,10 +27,7 @@ export class LocationsService {
     }
   }
 
-  async getAllLocations(
-    query: LocationQueryDto,
-    createdById?: number,
-  ): Promise<{
+  async getAllLocations(query: LocationQueryDto,createdById?: number): Promise<{
     data: Locations[];
     meta: { page: number; limit: number; total: number; totalPages: number };
   }> {
@@ -54,7 +41,6 @@ export class LocationsService {
     if (createdById) {
       where.createdBy = { id: createdById };
     }
-
     const [locations, total] = await this.locationsRepo.findAndCount({
       where: where,
       order: { id: 'ASC' },
@@ -81,22 +67,14 @@ export class LocationsService {
     return location;
   }
 
-  async replaceLocation(
-    id: number,
-    location: CreateLocationDto,
-    user: JwtPayload,
-  ): Promise<string> {
+  async replaceLocation(id: number,location: CreateLocationDto,user: JwtPayload): Promise<string> {
     await this.getOwnedLocation(id, user);
     await this.checkDuplicate(location.name, location.address, id);
     await this.locationsRepo.update(id, location);
     return `Location updated with id ${id}`;
   }
 
-  async updateLocation(
-    id: number,
-    location: UpdateLocationDto,
-    user: JwtPayload,
-  ): Promise<string> {
+  async updateLocation(id: number,location: UpdateLocationDto,user: JwtPayload): Promise<string> {
     if (Object.keys(location).length === 0) {
       throw new BadRequestException('Nothing to update');
     }
@@ -113,10 +91,7 @@ export class LocationsService {
   async deleteLocation(id: number, user: JwtPayload): Promise<string> {
     await this.getOwnedLocation(id, user);
 
-    const location = await this.locationsRepo.findOne({
-      where: { id: id },
-      relations: { resources: true },
-    });
+    const location = await this.locationsRepo.findOne({where: { id: id },relations: { resources: true },});
     if (location && location.resources.length > 0) {
       throw new ConflictException(
         `Location with id ${id} is used by ${location.resources.length} resource(s) and cannot be deleted`,
@@ -131,14 +106,8 @@ export class LocationsService {
     }
   }
 
-  private async getOwnedLocation(
-    id: number,
-    user: JwtPayload,
-  ): Promise<Locations> {
-    const location = await this.locationsRepo.findOne({
-      where: { id: id },
-      relations: { createdBy: true },
-    });
+  private async getOwnedLocation(id: number,user: JwtPayload): Promise<Locations> {
+    const location = await this.locationsRepo.findOne({where: { id: id },relations: { createdBy: true },});
     if (!location) {
       throw new NotFoundException(`Location with id ${id} not found`);
     }
@@ -148,18 +117,8 @@ export class LocationsService {
     return location;
   }
 
-  private async checkDuplicate(
-    name: string,
-    address: string,
-    id?: number,
-  ): Promise<void> {
-    const exists = await this.locationsRepo.findOne({
-      where: {
-        name: name,
-        address: address,
-      },
-      withDeleted: true,
-    });
+  private async checkDuplicate(name: string,address: string,id?: number,): Promise<void> {
+    const exists = await this.locationsRepo.findOne({where: {name: name,address: address},withDeleted: true,});
     if (exists && exists.id !== id) {
       throw new ConflictException(
         `Location '${name}' already exists at this address`,

@@ -1,11 +1,4 @@
-import {
-  BadRequestException,
-  ConflictException,
-  ForbiddenException,
-  HttpException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import {BadRequestException,ConflictException,ForbiddenException,HttpException,Injectable,NotFoundException} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, FindOptionsWhere, Repository } from 'typeorm';
 import { Seats } from './entities/seats.entity.js';
@@ -39,9 +32,7 @@ export class SeatsService {
         lock: { mode: 'pessimistic_write' },
       });
       if (!resource) {
-        throw new NotFoundException(
-          `Resource with id ${seat.resourceId} not found`,
-        );
+        throw new NotFoundException(`Resource with id ${seat.resourceId} not found`,);
       }
       if (resource.capacity >= 260) {
         throw new ConflictException('A resource can have at most 260 seats');
@@ -53,10 +44,7 @@ export class SeatsService {
         seatNumber: seatNumber,
       });
       if (exists) {
-        throw new ConflictException(
-          `Seat ${seatNumber} already exists in resource ${resource.id}`,
-        );
-      }
+        throw new ConflictException(`Seat ${seatNumber} already exists in resource ${resource.id}`,);}
 
       const seatEntity = queryRunner.manager.create(Seats, {
         resource: resource,
@@ -73,7 +61,8 @@ export class SeatsService {
 
       await queryRunner.commitTransaction();
       return savedSeat;
-    } catch (error) {
+    } 
+    catch (error) {
       await queryRunner.rollbackTransaction();
       if (error instanceof HttpException) {
         throw error;
@@ -92,12 +81,8 @@ export class SeatsService {
     const limit = query.limit ?? 10;
 
     const where: FindOptionsWhere<Seats> = {};
-    if (query.resourceId) {
-      where.resource = { id: query.resourceId };
-    }
-    if (query.status) {
-      where.status = query.status;
-    }
+    if (query.resourceId) {where.resource = { id: query.resourceId };}
+    if (query.status) {where.status = query.status;}
 
     const [seats, total] = await this.seatsRepo.findAndCount({
       where: where,
@@ -122,18 +107,13 @@ export class SeatsService {
       where: { id: id },
       relations: { resource: true },
     });
-    // a seat of a deleted resource is treated as not found
     if (!seat || !seat.resource) {
       throw new NotFoundException(`Seat with id ${id} not found`);
     }
     return seat;
   }
 
-  async replaceSeat(
-    id: number,
-    seat: ReplaceSeatDto,
-    user: JwtPayload,
-  ): Promise<string> {
+  async replaceSeat(id: number,seat: ReplaceSeatDto,user: JwtPayload,): Promise<string> {
     const oldSeat = await this.getOwnedSeat(id, user);
     const seatNumber = `${seat.rowLetter}${seat.columnNumber}`;
     await this.checkRenumber(oldSeat, seatNumber);
@@ -145,11 +125,7 @@ export class SeatsService {
     return `Seat updated with id ${id}`;
   }
 
-  async updateSeat(
-    id: number,
-    seat: UpdateSeatDto,
-    user: JwtPayload,
-  ): Promise<string> {
+  async updateSeat(id: number,seat: UpdateSeatDto,user: JwtPayload,): Promise<string> {
     if (Object.keys(seat).length === 0) {
       throw new BadRequestException('Nothing to update');
     }
@@ -182,8 +158,6 @@ export class SeatsService {
           `Resource with id ${seat.resource.id} not found`,
         );
       }
-
-      // BR-15: a seat that was ever held or sold cannot be deleted
       const timesHeld = await queryRunner.manager.count(SeatHolds, {
         where: { seat: { id: id } },
       });
@@ -223,10 +197,7 @@ export class SeatsService {
     }
   }
 
-  private async checkResourceOwner(
-    resourceId: number,
-    user: JwtPayload,
-  ): Promise<void> {
+  private async checkResourceOwner(resourceId: number,user: JwtPayload,): Promise<void> {
     const resource = await this.dataSource.getRepository(Resources).findOne({
       where: { id: resourceId },
       relations: { organizer: true },
@@ -246,8 +217,6 @@ export class SeatsService {
     await this.checkResourceOwner(seat.resource.id, user);
     return seat;
   }
-
-  // a seat that was ever held or sold keeps its number (tickets and holds point to it)
   private async checkRenumber(seat: Seats, seatNumber: string): Promise<void> {
     if (seat.seatNumber === seatNumber) {
       return;
@@ -265,11 +234,7 @@ export class SeatsService {
     }
   }
 
-  private async checkDuplicate(
-    resourceId: number,
-    seatNumber: string,
-    id?: number,
-  ): Promise<void> {
+  private async checkDuplicate(resourceId: number,seatNumber: string,id?: number,): Promise<void> {
     const exists = await this.seatsRepo.findOneBy({
       resource: { id: resourceId },
       seatNumber: seatNumber,
